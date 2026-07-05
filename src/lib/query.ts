@@ -1,0 +1,113 @@
+import type { ListResult } from "@/types";
+import { PAGE_SIZE } from "./constants";
+
+// Generic search/filter/sort/paginate engine shared by the products, orders,
+// and customers API routes.
+
+export type ListQuery = {
+  search?: string;
+  searchFields: string[];
+  filters?: Record<string, string | undefined>;
+  sort?: string;
+  order?: "asc" | "desc";
+  page?: number;
+  pageSize?: number;
+};
+
+export function queryList<T extends Record<string, unknown>>(
+  items: T[],
+  {
+    search,
+    searchFields,
+    filters,
+    sort,
+    order = "asc",
+    page = 1,
+    pageSize = PAGE_SIZE,
+  }: ListQuery,
+): ListResult<T> {
+  let rows = items;
+
+  // Search: case-insensitive substring across the given fields.
+  if (search) {
+    const q = search.toLowerCase();
+    rows = rows.filter((item) =>
+      searchFields.some((field) =>
+        String(item[field] ?? "")
+          .toLowerCase()
+          .includes(q),
+      ),
+    );
+  }
+
+  // Filters: exact match per key. "all" / empty means "no filter".
+  if (filters) {
+    for (const [key, value] of Object.entries(filters)) {
+      if (value && value !== "all") {
+        rows = rows.filter((item) => String(item[key]) === value);
+      }
+    }
+  }
+
+  // Sort: numbers compare numerically, everything else as localized strings
+  // (ISO date strings sort chronologically as a side effect).
+  if (sort) {
+    rows = [...rows].sort((a, b) => {
+      const av = a[sort];
+      const bv = b[sort];
+      const cmp =
+        typeof av === "number" && typeof bv === "number"
+          ? av - bv
+          : String(av).localeCompare(String(bv));
+      return order === "asc" ? cmp : -cmp;
+    });
+  }
+
+  // Paginate (clamp the page so an out-of-range ?page= can't show a blank table).
+  const total = rows.length;
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const safePage = Math.min(Math.max(1, page), totalPages);
+  const start = (safePage - 1) * pageSize;
+
+  return {
+    rows: rows.slice(start, start + pageSize),
+    total,
+    page: safePage,
+    pageSize,
+    totalPages,
+  };
+}
+
+// Turn a request's URL params into a typed ListQuery for queryList().
+export function parseListQuery(
+  searchParams: URLSearchParams,
+  opts: {
+    searchFields: string[];
+    filterKeys: string[];
+    defaultSort?: string;
+    defaultOrder?: "asc" | "desc";
+    pageSize?: number;
+  },
+): ListQuery {
+  const filters: Record<string, string | undefined> = {};
+  for (const key of opts.filterKeys) {
+    const value = searchParams.get(key);
+    if (value) filters[key] = value;
+  }
+
+  const page = Number(searchParams.get("page"));
+  const order = searchParams.get("order");
+
+  return {
+    search: searchParams.get("search") ?? undefined,
+    searchFields: opts.searchFields,
+    filters,
+    sort: searchParams.get("sort") ?? opts.defaultSort,
+    order:
+      order === "asc" || order === "desc"
+        ? order
+        : (opts.defaultOrder ?? "asc"),
+    page: Number.isFinite(page) && page > 0 ? page : 1,
+    pageSize: opts.pageSize,
+  };
+}
