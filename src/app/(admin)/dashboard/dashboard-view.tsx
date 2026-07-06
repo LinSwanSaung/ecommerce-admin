@@ -1,17 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import {
-  AlertTriangle,
-  DollarSign,
-  Package,
-  ShoppingCart,
-  Users,
-} from "lucide-react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { DollarSign, Package, ShoppingCart, Users } from "lucide-react";
 
 import { StatCard } from "@/components/stat-card";
 import { SalesChart, type ChartMetric } from "@/components/dashboard/sales-chart";
-import { DataTable, type Column } from "@/components/tables/data-table";
+import { DataTable } from "@/components/tables/data-table";
 import { StatusBadge } from "@/components/status-badge";
 import { EmptyState } from "@/components/empty-state";
 import {
@@ -23,84 +18,75 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useDashboard } from "@/hooks/use-dashboard";
+import { useDataTable } from "@/hooks/use-data-table";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
-import type { Order } from "@/types";
+import type { DashboardData, Order } from "@/types";
 
-const recentOrderColumns: Column<Order>[] = [
+const recentOrderColumns: ColumnDef<Order>[] = [
   {
-    key: "id",
+    accessorKey: "id",
     header: "Order",
-    cell: (order) => <span className="font-medium">{order.id}</span>,
+    enableSorting: false,
+    cell: ({ row }) => <span className="font-medium">{row.original.id}</span>,
   },
-  { key: "customerName", header: "Customer", cell: (order) => order.customerName },
+  { accessorKey: "customerName", header: "Customer", enableSorting: false },
   {
-    key: "date",
+    accessorKey: "date",
     header: "Date",
-    className: "hidden md:table-cell",
-    cell: (order) => formatDate(order.date),
+    enableSorting: false,
+    meta: { className: "hidden md:table-cell" },
+    cell: ({ row }) => formatDate(row.original.date),
   },
   {
-    key: "total",
+    accessorKey: "total",
     header: "Total",
-    className: "text-right",
-    cell: (order) => (
-      <span className="font-medium">{formatCurrency(order.total)}</span>
+    enableSorting: false,
+    meta: { className: "text-right" },
+    cell: ({ row }) => (
+      <span className="font-medium">{formatCurrency(row.original.total)}</span>
     ),
   },
   {
-    key: "status",
+    accessorKey: "status",
     header: "Status",
-    cell: (order) => <StatusBadge status={order.status} />,
+    enableSorting: false,
+    cell: ({ row }) => <StatusBadge status={row.original.status} />,
   },
 ];
 
-export function DashboardView() {
-  const { data, isLoading, isError, refetch } = useDashboard();
+// Client view for interactivity only (chart metric tab, table rendering);
+// all data arrives server-rendered via props.
+export function DashboardView({ data }: { data: DashboardData }) {
   const [metric, setMetric] = useState<ChartMetric>("revenue");
 
-  if (isError) {
-    return (
-      <Card>
-        <EmptyState
-          icon={AlertTriangle}
-          title="Couldn't load the dashboard"
-          description="Something went wrong while fetching your data."
-          action={{ label: "Try again", onClick: () => refetch() }}
-        />
-      </Card>
-    );
-  }
-
-  const totals = data?.totals;
+  const recentOrdersTable = useDataTable({
+    columns: recentOrderColumns,
+    rows: data.recentOrders,
+    getRowId: (order) => order.id,
+  });
 
   return (
     <div className="space-y-6">
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Total revenue"
-          value={totals ? formatCurrency(totals.revenue) : ""}
+          value={formatCurrency(data.totals.revenue)}
           icon={DollarSign}
-          isLoading={isLoading}
         />
         <StatCard
           label="Total orders"
-          value={totals ? formatNumber(totals.orders) : ""}
+          value={formatNumber(data.totals.orders)}
           icon={ShoppingCart}
-          isLoading={isLoading}
         />
         <StatCard
           label="Total customers"
-          value={totals ? formatNumber(totals.customers) : ""}
+          value={formatNumber(data.totals.customers)}
           icon={Users}
-          isLoading={isLoading}
         />
         <StatCard
           label="Total products"
-          value={totals ? formatNumber(totals.products) : ""}
+          value={formatNumber(data.totals.products)}
           icon={Package}
-          isLoading={isLoading}
         />
       </div>
 
@@ -121,11 +107,7 @@ export function DashboardView() {
           </CardAction>
         </CardHeader>
         <CardContent>
-          {isLoading || !data ? (
-            <Skeleton className="h-65 w-full" />
-          ) : (
-            <SalesChart data={data.dailyStats} metric={metric} />
-          )}
+          <SalesChart data={data.dailyStats} metric={metric} />
         </CardContent>
       </Card>
 
@@ -135,11 +117,7 @@ export function DashboardView() {
         </CardHeader>
         <CardContent>
           <DataTable
-            columns={recentOrderColumns}
-            rows={data?.recentOrders ?? []}
-            getRowId={(order) => order.id}
-            isLoading={isLoading}
-            skeletonRows={5}
+            table={recentOrdersTable}
             empty={<EmptyState title="No orders yet" />}
           />
         </CardContent>

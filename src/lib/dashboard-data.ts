@@ -1,13 +1,11 @@
-import { NextResponse } from "next/server";
-
 import { products, orders, customers } from "@/data/mock-data";
 import type { DashboardData } from "@/types";
 
 const round = (n: number) => Math.round(n * 100) / 100;
 
-// GET /api/dashboard — headline totals, recent orders, and a 14-day daily series
-// (revenue + order count per day, for the dashboard chart's metric toggle).
-export async function GET() {
+// Computes the dashboard summary from the mock data. Shared by the API route
+// (client refetches) and the dashboard server page (initial server render).
+export function getDashboardData(): DashboardData {
   const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
 
   const days = 14;
@@ -25,7 +23,7 @@ export async function GET() {
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, 6);
 
-  const data: DashboardData = {
+  return {
     totals: {
       revenue: round(totalRevenue),
       orders: orders.length,
@@ -35,6 +33,4 @@ export async function GET() {
     recentOrders,
     dailyStats,
   };
-
-  return NextResponse.json(data);
 }

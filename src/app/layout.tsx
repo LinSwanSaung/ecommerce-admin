@@ -3,7 +3,6 @@ import { Outfit } from "next/font/google";
 import "./globals.css";
 
 import { Providers } from "./providers";
-import { AppShell } from "@/components/layout/app-shell";
 
 // next/font self-hosts Outfit and exposes it as `--font-outfit` for globals.css.
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
@@ -26,9 +25,7 @@ export default function RootLayout({
       className={`${outfit.variable} h-full antialiased`}
     >
       <body className="min-h-full">
-        <Providers>
-          <AppShell>{children}</AppShell>
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

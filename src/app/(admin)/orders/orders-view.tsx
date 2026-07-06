@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, SearchX } from "lucide-react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { SearchX } from "lucide-react";
 
-import { DataTable, type Column } from "@/components/tables/data-table";
+import { DataTable } from "@/components/tables/data-table";
 import { SearchInput } from "@/components/tables/search-input";
 import { FilterSelect } from "@/components/tables/filter-select";
 import { ColumnToggle } from "@/components/tables/column-toggle";
@@ -11,67 +12,47 @@ import { TablePagination } from "@/components/tables/table-pagination";
 import { StatusBadge } from "@/components/status-badge";
 import { EmptyState } from "@/components/empty-state";
 import { DetailSheet, DetailRow } from "@/components/detail-sheet";
-import { useList } from "@/hooks/use-list";
+import { useDataTable } from "@/hooks/use-data-table";
+import { useQueryParams } from "@/hooks/use-query-params";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { ORDER_STATUSES } from "@/lib/constants";
-import type { Order } from "@/types";
+import type { ListResult, Order } from "@/types";
 
-const columns: Column<Order>[] = [
+const columns: ColumnDef<Order>[] = [
   {
-    key: "id",
+    accessorKey: "id",
     header: "Order",
-    sortable: true,
-    cell: (order) => <span className="font-medium">{order.id}</span>,
+    cell: ({ row }) => <span className="font-medium">{row.original.id}</span>,
   },
-  { key: "customerName", header: "Customer", cell: (order) => order.customerName },
+  { accessorKey: "customerName", header: "Customer", enableSorting: false },
   {
-    key: "date",
+    accessorKey: "date",
     header: "Date",
-    sortable: true,
-    className: "hidden md:table-cell",
-    cell: (order) => formatDate(order.date),
+    meta: { className: "hidden md:table-cell" },
+    cell: ({ row }) => formatDate(row.original.date),
   },
   {
-    key: "total",
+    accessorKey: "total",
     header: "Total",
-    sortable: true,
-    className: "text-right",
-    cell: (order) => formatCurrency(order.total),
+    meta: { className: "text-right" },
+    cell: ({ row }) => formatCurrency(row.original.total),
   },
   {
-    key: "status",
+    accessorKey: "status",
     header: "Status",
-    sortable: true,
-    cell: (order) => <StatusBadge status={order.status} />,
+    cell: ({ row }) => <StatusBadge status={row.original.status} />,
   },
 ];
 
-export function OrdersView() {
-  const { data, isLoading, isError, refetch } = useList<Order>("orders");
+export function OrdersView({ data }: { data: ListResult<Order> }) {
+  const { isPending } = useQueryParams();
   const [detail, setDetail] = useState<Order | null>(null);
-  const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
 
-  const toggleColumn = (key: string) =>
-    setHiddenColumns((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
-    );
-
-  const visibleColumns = columns.filter((col) => !hiddenColumns.includes(col.key));
-
-  const emptyState = isError ? (
-    <EmptyState
-      icon={AlertTriangle}
-      title="Couldn't load orders"
-      description="Something went wrong while fetching the list."
-      action={{ label: "Try again", onClick: () => refetch() }}
-    />
-  ) : (
-    <EmptyState
-      icon={SearchX}
-      title="No orders found"
-      description="Try adjusting your search or filters."
-    />
-  );
+  const table = useDataTable({
+    columns,
+    rows: data.rows,
+    getRowId: (order) => order.id,
+  });
 
   return (
     <div className="space-y-4">
@@ -79,28 +60,28 @@ export function OrdersView() {
         <SearchInput placeholder="Search order ID or customer" />
         <FilterSelect paramKey="status" label="Statuses" options={ORDER_STATUSES} />
         <div className="sm:ml-auto">
-          <ColumnToggle
-            columns={columns}
-            hidden={hiddenColumns}
-            onToggle={toggleColumn}
-          />
+          <ColumnToggle table={table} />
         </div>
       </div>
 
       <DataTable
-        columns={visibleColumns}
-        rows={data?.rows ?? []}
-        getRowId={(order) => order.id}
-        isLoading={isLoading}
+        table={table}
+        isLoading={isPending}
         onRowClick={setDetail}
-        empty={emptyState}
+        empty={
+          <EmptyState
+            icon={SearchX}
+            title="No orders found"
+            description="Try adjusting your search or filters."
+          />
+        }
       />
 
       <TablePagination
-        page={data?.page ?? 1}
-        totalPages={data?.totalPages ?? 1}
-        total={data?.total ?? 0}
-        isLoading={isLoading}
+        page={data.page}
+        totalPages={data.totalPages}
+        total={data.total}
+        isLoading={isPending}
       />
 
       <DetailSheet

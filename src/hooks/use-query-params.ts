@@ -1,5 +1,6 @@
 "use client";
 
+import { useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 // The one place that reads/writes URL search params (search, filters, sort, page).
@@ -7,6 +8,9 @@ export function useQueryParams() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  // URL changes re-render the page on the server; isPending is true while that
+  // round trip is in flight, so views can show a loading state.
+  const [isPending, startTransition] = useTransition();
 
   const get = (key: string, fallback = "") => searchParams.get(key) ?? fallback;
 
@@ -19,10 +23,12 @@ export function useQueryParams() {
       else next.set(key, String(value));
     }
     const queryString = next.toString();
-    router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
-      scroll: false,
+    startTransition(() => {
+      router.replace(queryString ? `${pathname}?${queryString}` : pathname, {
+        scroll: false,
+      });
     });
   };
 
-  return { get, setParams };
+  return { get, setParams, isPending };
 }

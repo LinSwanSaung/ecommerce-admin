@@ -78,6 +78,19 @@ export function queryList<T extends Record<string, unknown>>(
   };
 }
 
+// Adapt a page's `searchParams` prop (plain object, values possibly arrays)
+// into URLSearchParams for parseListQuery().
+export function toURLSearchParams(
+  searchParams: Record<string, string | string[] | undefined>,
+): URLSearchParams {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(searchParams)) {
+    const single = Array.isArray(value) ? value[0] : value;
+    if (single) params.set(key, single);
+  }
+  return params;
+}
+
 // Turn a request's URL params into a typed ListQuery for queryList().
 export function parseListQuery(
   searchParams: URLSearchParams,

@@ -1,5 +1,6 @@
 "use client";
 
+import type { Table as TableInstance } from "@tanstack/react-table";
 import { Columns3 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -10,17 +11,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// Show/hide table columns. Visibility is view-local state (not URL); the page
-// filters its columns array before passing it to DataTable.
-export function ColumnToggle({
-  columns,
-  hidden,
-  onToggle,
-}: {
-  columns: { key: string; header: string }[];
-  hidden: string[];
-  onToggle: (key: string) => void;
-}) {
+// Show/hide table columns through TanStack Table's visibility API. Columns
+// opt out with `enableHiding: false` (e.g. the actions column).
+export function ColumnToggle<T>({ table }: { table: TableInstance<T> }) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -30,16 +23,21 @@ export function ColumnToggle({
         Columns
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        {columns.map((col) => (
-          <DropdownMenuCheckboxItem
-            key={col.key}
-            checked={!hidden.includes(col.key)}
-            onCheckedChange={() => onToggle(col.key)}
-            closeOnClick={false} // keep the menu open while toggling several
-          >
-            {col.header}
-          </DropdownMenuCheckboxItem>
-        ))}
+        {table
+          .getAllColumns()
+          .filter((column) => column.getCanHide())
+          .map((column) => (
+            <DropdownMenuCheckboxItem
+              key={column.id}
+              checked={column.getIsVisible()}
+              onCheckedChange={(checked) => column.toggleVisibility(!!checked)}
+              closeOnClick={false} // keep the menu open while toggling several
+            >
+              {typeof column.columnDef.header === "string"
+                ? column.columnDef.header
+                : column.id}
+            </DropdownMenuCheckboxItem>
+          ))}
       </DropdownMenuContent>
     </DropdownMenu>
   );

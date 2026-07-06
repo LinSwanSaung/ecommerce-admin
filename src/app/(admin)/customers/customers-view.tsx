@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { AlertTriangle, UserSearch } from "lucide-react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { UserSearch } from "lucide-react";
 
-import { DataTable, type Column } from "@/components/tables/data-table";
+import { DataTable } from "@/components/tables/data-table";
 import { SearchInput } from "@/components/tables/search-input";
 import { FilterSelect } from "@/components/tables/filter-select";
 import { ColumnToggle } from "@/components/tables/column-toggle";
@@ -11,72 +12,52 @@ import { TablePagination } from "@/components/tables/table-pagination";
 import { StatusBadge } from "@/components/status-badge";
 import { EmptyState } from "@/components/empty-state";
 import { DetailSheet, DetailRow } from "@/components/detail-sheet";
-import { useList } from "@/hooks/use-list";
+import { useDataTable } from "@/hooks/use-data-table";
+import { useQueryParams } from "@/hooks/use-query-params";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
 import { CUSTOMER_STATUSES } from "@/lib/constants";
-import type { Customer } from "@/types";
+import type { Customer, ListResult } from "@/types";
 
-const columns: Column<Customer>[] = [
+const columns: ColumnDef<Customer>[] = [
   {
-    key: "name",
+    accessorKey: "name",
     header: "Name",
-    sortable: true,
-    cell: (customer) => <span className="font-medium">{customer.name}</span>,
+    cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
   },
   {
-    key: "email",
+    accessorKey: "email",
     header: "Email",
-    className: "text-muted-foreground",
-    cell: (customer) => customer.email,
+    enableSorting: false,
+    meta: { className: "text-muted-foreground" },
   },
   {
-    key: "totalOrders",
+    accessorKey: "totalOrders",
     header: "Orders",
-    sortable: true,
-    className: "text-right",
-    cell: (customer) => formatNumber(customer.totalOrders),
+    meta: { className: "text-right" },
+    cell: ({ row }) => formatNumber(row.original.totalOrders),
   },
   {
-    key: "totalSpent",
+    accessorKey: "totalSpent",
     header: "Spent",
-    sortable: true,
-    className: "text-right",
-    cell: (customer) => formatCurrency(customer.totalSpent),
+    meta: { className: "text-right" },
+    cell: ({ row }) => formatCurrency(row.original.totalSpent),
   },
   {
-    key: "status",
+    accessorKey: "status",
     header: "Status",
-    sortable: true,
-    cell: (customer) => <StatusBadge status={customer.status} />,
+    cell: ({ row }) => <StatusBadge status={row.original.status} />,
   },
 ];
 
-export function CustomersView() {
-  const { data, isLoading, isError, refetch } = useList<Customer>("customers");
+export function CustomersView({ data }: { data: ListResult<Customer> }) {
+  const { isPending } = useQueryParams();
   const [detail, setDetail] = useState<Customer | null>(null);
-  const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
 
-  const toggleColumn = (key: string) =>
-    setHiddenColumns((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
-    );
-
-  const visibleColumns = columns.filter((col) => !hiddenColumns.includes(col.key));
-
-  const emptyState = isError ? (
-    <EmptyState
-      icon={AlertTriangle}
-      title="Couldn't load customers"
-      description="Something went wrong while fetching the list."
-      action={{ label: "Try again", onClick: () => refetch() }}
-    />
-  ) : (
-    <EmptyState
-      icon={UserSearch}
-      title="No customers found"
-      description="Try adjusting your search or filters."
-    />
-  );
+  const table = useDataTable({
+    columns,
+    rows: data.rows,
+    getRowId: (customer) => customer.id,
+  });
 
   return (
     <div className="space-y-4">
@@ -88,28 +69,28 @@ export function CustomersView() {
           options={CUSTOMER_STATUSES}
         />
         <div className="sm:ml-auto">
-          <ColumnToggle
-            columns={columns}
-            hidden={hiddenColumns}
-            onToggle={toggleColumn}
-          />
+          <ColumnToggle table={table} />
         </div>
       </div>
 
       <DataTable
-        columns={visibleColumns}
-        rows={data?.rows ?? []}
-        getRowId={(customer) => customer.id}
-        isLoading={isLoading}
+        table={table}
+        isLoading={isPending}
         onRowClick={setDetail}
-        empty={emptyState}
+        empty={
+          <EmptyState
+            icon={UserSearch}
+            title="No customers found"
+            description="Try adjusting your search or filters."
+          />
+        }
       />
 
       <TablePagination
-        page={data?.page ?? 1}
-        totalPages={data?.totalPages ?? 1}
-        total={data?.total ?? 0}
-        isLoading={isLoading}
+        page={data.page}
+        totalPages={data.totalPages}
+        total={data.total}
+        isLoading={isPending}
       />
 
       <DetailSheet

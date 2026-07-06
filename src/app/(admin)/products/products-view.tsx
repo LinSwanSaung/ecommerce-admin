@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useOptimistic, useState, useTransition } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
 import {
-  AlertTriangle,
   Archive,
   MoreHorizontal,
   PackageSearch,
   Pencil,
   Plus,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +18,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DataTable, type Column } from "@/components/tables/data-table";
+import { DataTable } from "@/components/tables/data-table";
 import { SearchInput } from "@/components/tables/search-input";
 import { FilterSelect } from "@/components/tables/filter-select";
 import { ColumnToggle } from "@/components/tables/column-toggle";
@@ -26,28 +27,46 @@ import { StatusBadge } from "@/components/status-badge";
 import { EmptyState } from "@/components/empty-state";
 import { DetailSheet, DetailRow } from "@/components/detail-sheet";
 import { ProductFormDialog } from "@/components/products/product-form-dialog";
-import { useList } from "@/hooks/use-list";
-import { useArchiveProduct } from "@/hooks/use-products";
+import { useDataTable } from "@/hooks/use-data-table";
+import { useQueryParams } from "@/hooks/use-query-params";
+import { archiveProduct } from "@/lib/product-actions";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { CATEGORIES, PRODUCT_STATUSES } from "@/lib/constants";
-import type { Product } from "@/types";
+import type { ListResult, Product } from "@/types";
 
 const categoryOptions = CATEGORIES.map((c) => ({ value: c, label: c }));
 
-export function ProductsView() {
-  const { data, isLoading, isError, refetch } = useList<Product>("products");
-  const archiveProduct = useArchiveProduct();
+// Client view: receives the server-queried page of products as a prop and
+// owns only interactivity — drawers, the form dialog, optimistic archive.
+export function ProductsView({ data }: { data: ListResult<Product> }) {
+  const { isPending } = useQueryParams();
+  const [, startTransition] = useTransition();
 
   // Local UI state: which product's detail is open, and the add/edit dialog.
   const [detail, setDetail] = useState<Product | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
-  const [hiddenColumns, setHiddenColumns] = useState<string[]>([]);
 
-  const toggleColumn = (key: string) =>
-    setHiddenColumns((prev) =>
-      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
-    );
+  // Optimistic archive (React 19): flip the row's status immediately; when the
+  // Server Action revalidates, the real rows arrive and replace this. If the
+  // action fails, the optimistic state reverts automatically.
+  const [rows, applyArchive] = useOptimistic(
+    data.rows,
+    (current, archivedId: string) =>
+      current.map((product) =>
+        product.id === archivedId
+          ? { ...product, status: "archived" as const }
+          : product,
+      ),
+  );
+
+  const archive = (id: string) =>
+    startTransition(async () => {
+      applyArchive(id);
+      const result = await archiveProduct(id);
+      if ("error" in result) toast.error(result.error);
+      else toast.success("Product archived");
+    });
 
   const openAdd = () => {
     setEditing(null);
@@ -58,50 +77,49 @@ export function ProductsView() {
     setFormOpen(true);
   };
 
-  const columns: Column<Product>[] = [
+  const columns: ColumnDef<Product>[] = [
     {
-      key: "name",
+      accessorKey: "name",
       header: "Name",
-      sortable: true,
-      cell: (product) => <span className="font-medium">{product.name}</span>,
+      cell: ({ row }) => (
+        <span className="font-medium">{row.original.name}</span>
+      ),
     },
     {
-      key: "sku",
+      accessorKey: "sku",
       header: "SKU",
-      className: "text-muted-foreground",
-      cell: (product) => product.sku,
+      enableSorting: false,
+      meta: { className: "text-muted-foreground" },
     },
     {
-      key: "category",
+      accessorKey: "category",
       header: "Category",
-      className: "hidden lg:table-cell",
-      cell: (product) => product.category,
+      enableSorting: false,
+      meta: { className: "hidden lg:table-cell" },
     },
     {
-      key: "price",
+      accessorKey: "price",
       header: "Price",
-      sortable: true,
-      className: "text-right",
-      cell: (product) => formatCurrency(product.price),
+      meta: { className: "text-right" },
+      cell: ({ row }) => formatCurrency(row.original.price),
     },
     {
-      key: "stock",
+      accessorKey: "stock",
       header: "Stock",
-      sortable: true,
-      className: "text-right",
-      cell: (product) => product.stock,
+      meta: { className: "text-right" },
     },
     {
-      key: "status",
+      accessorKey: "status",
       header: "Status",
-      sortable: true,
-      cell: (product) => <StatusBadge status={product.status} />,
+      cell: ({ row }) => <StatusBadge status={row.original.status} />,
     },
     {
-      key: "actions",
+      id: "actions",
       header: "",
-      className: "w-10 text-right",
-      cell: (product) => (
+      enableSorting: false,
+      enableHiding: false,
+      meta: { className: "w-10 text-right" },
+      cell: ({ row }) => (
         // Stop propagation so using the menu doesn't also open the row's detail.
         <div onClick={(event) => event.stopPropagation()}>
           <DropdownMenu>
@@ -113,14 +131,14 @@ export function ProductsView() {
               <MoreHorizontal />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => openEdit(product)}>
+              <DropdownMenuItem onClick={() => openEdit(row.original)}>
                 <Pencil />
                 Edit
               </DropdownMenuItem>
               <DropdownMenuItem
                 variant="destructive"
-                disabled={product.status === "archived"}
-                onClick={() => archiveProduct.mutate(product.id)}
+                disabled={row.original.status === "archived"}
+                onClick={() => archive(row.original.id)}
               >
                 <Archive />
                 Archive
@@ -132,24 +150,11 @@ export function ProductsView() {
     },
   ];
 
-  // Only columns with a visible header can be hidden (keeps the actions column).
-  const hideableColumns = columns.filter((col) => col.header);
-  const visibleColumns = columns.filter((col) => !hiddenColumns.includes(col.key));
-
-  const emptyState = isError ? (
-    <EmptyState
-      icon={AlertTriangle}
-      title="Couldn't load products"
-      description="Something went wrong while fetching the list."
-      action={{ label: "Try again", onClick: () => refetch() }}
-    />
-  ) : (
-    <EmptyState
-      icon={PackageSearch}
-      title="No products found"
-      description="Try adjusting your search or filters."
-    />
-  );
+  const table = useDataTable({
+    columns,
+    rows,
+    getRowId: (product) => product.id,
+  });
 
   return (
     <div className="space-y-4">
@@ -170,11 +175,7 @@ export function ProductsView() {
           </div>
         </div>
         <div className="flex gap-2">
-          <ColumnToggle
-            columns={hideableColumns}
-            hidden={hiddenColumns}
-            onToggle={toggleColumn}
-          />
+          <ColumnToggle table={table} />
           <Button onClick={openAdd}>
             <Plus />
             Add product
@@ -183,19 +184,23 @@ export function ProductsView() {
       </div>
 
       <DataTable
-        columns={visibleColumns}
-        rows={data?.rows ?? []}
-        getRowId={(product) => product.id}
-        isLoading={isLoading}
+        table={table}
+        isLoading={isPending}
         onRowClick={setDetail}
-        empty={emptyState}
+        empty={
+          <EmptyState
+            icon={PackageSearch}
+            title="No products found"
+            description="Try adjusting your search or filters."
+          />
+        }
       />
 
       <TablePagination
-        page={data?.page ?? 1}
-        totalPages={data?.totalPages ?? 1}
-        total={data?.total ?? 0}
-        isLoading={isLoading}
+        page={data.page}
+        totalPages={data.totalPages}
+        total={data.total}
+        isLoading={isPending}
       />
 
       {/* Detail drawer */}

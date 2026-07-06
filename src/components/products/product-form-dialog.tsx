@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,7 +28,7 @@ import {
   productFormSchema,
   type ProductFormValues,
 } from "@/lib/product-schema";
-import { useCreateProduct, useUpdateProduct } from "@/hooks/use-products";
+import { createProduct, updateProduct } from "@/lib/product-actions";
 import type { Product } from "@/types";
 
 const EMPTY: ProductFormValues = {
@@ -59,38 +60,38 @@ export function ProductFormDialog({
   product: Product | null;
 }) {
   const isEdit = Boolean(product);
-  const createProduct = useCreateProduct();
-  const updateProduct = useUpdateProduct();
-  const isSaving = createProduct.isPending || updateProduct.isPending;
 
   const {
     register,
     handleSubmit,
     control,
     reset,
-    formState: { errors },
+    formState: { errors, isSubmitting },
   } = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
     defaultValues: EMPTY,
   });
+  const isSaving = isSubmitting;
 
   // Seed the form when the dialog opens: the product for edit, blanks for add.
   useEffect(() => {
     if (open) reset(product ? toFormValues(product) : EMPTY);
   }, [open, product, reset]);
 
+  // Calls the create/update Server Action; revalidatePath inside it refreshes
+  // the products list in the same round trip.
   const onSubmit = handleSubmit(async (values) => {
     const input = formValuesToInput(values);
-    try {
-      if (product) {
-        await updateProduct.mutateAsync({ id: product.id, input });
-      } else {
-        await createProduct.mutateAsync(input);
-      }
-      onOpenChange(false); // close only after the request succeeds
-    } catch {
-      // Failure toast is raised by the mutation's onError; keep the dialog open.
+    const result = product
+      ? await updateProduct(product.id, input)
+      : await createProduct(input);
+
+    if ("error" in result) {
+      toast.error(result.error); // keep the dialog open for another attempt
+      return;
     }
+    toast.success(product ? "Product updated" : "Product created");
+    onOpenChange(false);
   });
 
   return (
@@ -107,12 +108,20 @@ export function ProductFormDialog({
 
         <form onSubmit={onSubmit} className="space-y-4" noValidate>
           <Field label="Name" htmlFor="name" error={errors.name?.message}>
-            <Input id="name" {...register("name")} aria-invalid={!!errors.name} />
+            <Input
+              id="name"
+              {...register("name")}
+              aria-invalid={!!errors.name}
+            />
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="SKU" htmlFor="sku" error={errors.sku?.message}>
-              <Input id="sku" {...register("sku")} aria-invalid={!!errors.sku} />
+              <Input
+                id="sku"
+                {...register("sku")}
+                aria-invalid={!!errors.sku}
+              />
             </Field>
 
             <Field label="Category" error={errors.category?.message}>
@@ -144,7 +153,11 @@ export function ProductFormDialog({
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Price ($)" htmlFor="price" error={errors.price?.message}>
+            <Field
+              label="Price ($)"
+              htmlFor="price"
+              error={errors.price?.message}
+            >
               <Input
                 id="price"
                 type="number"

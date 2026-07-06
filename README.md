@@ -1,32 +1,41 @@
 # Ecommerce Admin Panel
 
 An internal admin panel for store staff to monitor performance and manage
-products, orders, and customers. Built with the Next.js App Router, TypeScript,
-and a shadcn/ui component layer.
+products, orders, and customers — behind a session-based login. Built with the
+Next.js App Router, TypeScript, and a shadcn/ui component layer.
 
-The data is mocked (served from Next.js API routes), but the frontend is wired
-like it talks to a real backend: every list is fetched over HTTP, with real
-loading / empty / error states, and all filtering, search, sorting, and
-pagination happen server-side and are driven by the URL.
+The app is **server-first**: pages are React Server Components that read the
+URL and query the data on the server, mutations are Server Actions, and the
+client components only handle interactivity (dialogs, menus, optimistic
+updates). The data itself is a mocked in-memory dataset, but the wiring —
+httpOnly session cookie, middleware-guarded routes, URL-driven
+search/filter/sort/pagination — is the production pattern.
 
 ## Tech stack
 
 | Tool | Why |
 | --- | --- |
-| **Next.js 16 (App Router) + TypeScript** | File-based routing; the URL is the source of truth for table state. |
+| **Next.js 16 (App Router) + TypeScript** | Server components, Server Actions, route groups, middleware (`proxy.ts`), `loading`/`error` file conventions. |
 | **Tailwind CSS + shadcn/ui** | Accessible components copied *into* the repo (built on Base UI primitives), so they're owned and editable, not a black box. |
-| **TanStack Query** | Client-side fetching with `isLoading` / `isError` / caching and easy refetch-after-mutation. |
-| **React Hook Form + Zod** | One schema validates the product form and types it. |
-| **Mock Next.js API routes** | An in-memory dataset behind `/api/*` so the app behaves like a real system. |
+| **TanStack Table (headless)** | Column definitions, sorting state, column visibility — logic only, we own all the markup. |
+| **React Hook Form + Zod** | One schema validates the product form on the client *and* the Server Action input on the server. |
+| **Session auth (no library)** | HMAC-signed tokens in an httpOnly cookie, verified in middleware — small enough to own and explain. |
 | **next-themes + Sonner** | Dark mode and toast notifications. |
-| **Recharts** | The dashboard revenue chart. |
-| **Vitest** | Unit tests for the core query utility. |
+| **Recharts** | The dashboard revenue/orders chart. |
+| **Vitest + Testing Library** | Unit tests for utilities and component tests for the table and form. |
 
 ## Getting started
 
 ```bash
 npm install
-npm run dev      # http://localhost:3000  (redirects to /dashboard)
+npm run dev      # http://localhost:3000
+```
+
+Sign in with the demo account:
+
+```
+email:    admin@acme.com
+password: admin123
 ```
 
 Other scripts:
@@ -34,154 +43,197 @@ Other scripts:
 ```bash
 npm run build    # production build
 npm run start    # serve the production build
-npm run test     # run unit tests (Vitest)
+npm run test     # run unit + component tests (Vitest)
 npm run lint     # ESLint
 ```
+
+## How data flows
+
+Reads — the URL is the single source of truth, and the server does the work:
+
+```
+/products?search=mug&status=active&sort=price&page=2
+   │
+   ▼
+page.tsx (server component) ──▶ await searchParams
+                            ──▶ parseListQuery()  validates/clamps the params
+                            ──▶ queryList()       search → filter → sort → paginate
+                            ──▶ <ProductsView data={...} />   props, already resolved
+```
+
+Changing a filter calls `router.replace` with the new query string (inside a
+`useTransition`, so the table can show a pending state) — Next re-renders the
+server component with the new `searchParams` and streams the result in. No
+client-side fetching, no cache to keep in sync.
+
+Writes — Server Actions:
+
+```
+form submit ──▶ createProduct()/updateProduct() ("use server")
+                  ├─ session check (unauthorized → error)
+                  ├─ Zod safeParse of the input
+                  ├─ mutate the in-memory dataset
+                  └─ revalidatePath("/products")  → fresh list in the same round trip
+```
+
+Archiving goes one step further with React 19's `useOptimistic`: the row flips
+to "Archived" instantly, and if the action fails, the optimistic state reverts
+automatically.
+
+## Authentication
+
+Session-based auth built from primitives (deliberately no auth library, so
+every step is explainable):
+
+```
+login form ──▶ login() Server Action ──▶ validates credentials (Zod + mock user)
+                                     └─▶ sets httpOnly session cookie (HMAC-signed token)
+                                     └─▶ redirect("/dashboard")
+
+every request ──▶ proxy.ts (middleware) ──▶ verifies the token signature + expiry
+                                         ├─ no session          → redirect /login
+                                         └─ has session + /login → redirect /dashboard
+
+logout() Server Action ──▶ deletes the cookie ──▶ redirect("/login")
+```
+
+Security decisions worth noting:
+
+- **httpOnly cookie** — client JavaScript can't read the session, so XSS can't
+  steal it. `sameSite: "lax"` mitigates CSRF; `secure` in production.
+- **Signed tokens** — the cookie value is `payload.signature` where the
+  signature is an HMAC (server secret). Users can see their token but can't
+  forge or alter it — tampering breaks the signature (covered by unit tests).
+- **Defense in depth** — `proxy.ts` guards every route, the admin layout
+  re-checks the session before rendering, and every Server Action re-checks it
+  before mutating.
 
 ## Project structure
 
 ```
 src/
+  proxy.ts                # middleware: auth gate for every route
   app/
-    layout.tsx            # root layout: fonts, providers, admin shell
+    layout.tsx            # root layout: fonts, providers
     page.tsx              # "/" -> redirects to /dashboard
-    providers.tsx         # client context: React Query, theme, tooltips, toaster
-    dashboard/            # page.tsx (server) + dashboard-view.tsx (client)
-    products/             # page.tsx + products-view.tsx
-    orders/               # page.tsx + orders-view.tsx
-    customers/            # page.tsx + customers-view.tsx
-    api/                  # mock backend: products (GET/POST), products/[id] (PATCH),
-                          #               orders, customers, dashboard
+    providers.tsx         # client context: theme, tooltips, toaster
+    not-found.tsx         # 404 page
+    (auth)/               # route group: pages outside the admin shell
+      layout.tsx          #   centered card layout
+      login/              #   login page + form (calls the login Server Action)
+    (admin)/              # route group: everything behind auth
+      layout.tsx          #   reads the session, wraps pages in the AppShell
+      loading.tsx         #   route-level loading UI (Suspense file convention)
+      error.tsx           #   route-level error boundary with retry
+      dashboard/          #   page.tsx (server: computes stats) + dashboard-view.tsx
+      products/           #   page.tsx (server: queries the list) + products-view.tsx
+      orders/             #   page.tsx + orders-view.tsx
+      customers/          #   page.tsx + customers-view.tsx
   components/
-    layout/               # sidebar, header, app-shell, theme-toggle, page-header
-    tables/               # data-table, table-pagination, search-input,
-                          #   filter-select, column-toggle
+    layout/               # sidebar, header, app-shell, user-menu, theme-toggle
+    tables/               # data-table, pagination, search, filter, column-toggle
     products/             # product-form-dialog (add/edit)
     dashboard/            # sales-chart (revenue/orders metric chart)
-    ui/                   # shadcn/ui primitives
-    status-badge.tsx, stat-card.tsx, empty-state.tsx, detail-sheet.tsx
+    ui/                   # shadcn/ui primitives (untouched)
   hooks/
-    use-query-params.ts   # read/write URL search params
+    use-query-params.ts   # read/write URL search params (single source of truth)
+    use-data-table.ts     # TanStack Table instance wired to the URL sort state
     use-debounced-value.ts
-    use-list.ts           # generic list fetcher (products/orders/customers)
-    use-products.ts       # create / update / archive mutations
-    use-dashboard.ts
   lib/
-    query.ts              # the shared search/filter/sort/paginate engine
-    constants.ts          # statuses, categories, badge colors, labels
-    format.ts             # currency / number / date formatters
-    product-schema.ts     # Zod schemas (form + API)
-    utils.ts              # cn()
-  data/
-    mock-data.ts          # deterministic generated products / orders / customers
-  types/
-    index.ts              # domain models
+    session.ts            # HMAC-signed session tokens (create/verify)
+    auth.ts               # demo user + server-side session lookup
+    auth-actions.ts       # login/logout Server Actions
+    product-actions.ts    # create/update/archive Server Actions
+    query.ts              # shared search/filter/sort/paginate engine
+    dashboard-data.ts     # dashboard summary (totals, daily stats, recent orders)
+    product-schema.ts     # Zod schemas (form values + action input)
+  data/mock-data.ts       # seeded in-memory dataset
+  types/                  # domain models
 ```
-
-The split is **route folders own their page** (`page.tsx` = server component with
-metadata; `*-view.tsx` = the client component that fetches and renders), and
-everything reusable lives under `components/`, `hooks/`, and `lib/`.
 
 ## State management
 
-I deliberately used **three** kinds of state, each for what it's best at —
-rather than reaching for one global store:
+Four kinds of state, each held where it belongs:
 
-1. **URL search params = filter/search/sort/page state.** This is the primary
-   decision. A filtered table view is *navigation state*: it should survive a
-   refresh, be shareable, and work with the back button. So it lives in the URL
-   (e.g. `/products?search=mug&status=active&sort=price&order=desc&page=2`).
-   A small hook, [`useQueryParams`](src/hooks/use-query-params.ts), wraps Next's
-   `useSearchParams` / `useRouter` so updating one param keeps the rest. The
-   table, search box, filters, and pagination all read and write through it —
-   there's no separate "filter state" to keep in sync.
+1. **URL search params = filter/search/sort/page state.** A filtered table view
+   is navigation state: it survives refresh, is shareable, and works with the
+   back button (`/products?search=mug&status=active&sort=price&page=2`). A
+   small hook ([`useQueryParams`](src/hooks/use-query-params.ts)) wraps Next's
+   URL hooks; the search box, filters, sort headers, and pagination all read
+   and write through it.
+2. **Server data stays on the server.** Pages are server components that query
+   per request — there is no client fetching layer or client cache to
+   invalidate. After a mutation, `revalidatePath` refreshes the affected pages;
+   while a filter change is in flight, `useTransition`'s `isPending` drives the
+   table's loading state. Archive layers `useOptimistic` on top for instant
+   feedback with automatic rollback.
+3. **Session = an httpOnly cookie**, read server-side (middleware, layout,
+   actions), never client JavaScript.
+4. **Local `useState` = ephemeral UI.** Open drawer/dialog, hidden table
+   columns, the chart's metric tab.
 
-2. **TanStack Query = server data.** Each list page calls
-   [`useList`](src/hooks/use-list.ts), which mirrors the current URL params into
-   the API request and keys the cache by them. Changing a filter changes the
-   key, which triggers a refetch — and gives `isLoading` / `isError` for free.
-   Product mutations invalidate the `products` queries so the table reflects
-   changes immediately.
+No global store — there's no cross-page client state that would justify one.
 
-3. **Local `useState` = ephemeral UI.** Which row's detail drawer is open,
-   whether the add/edit dialog is showing, which table columns are hidden, and
-   the dashboard chart's metric tab. These are throwaway view preferences — they
-   never need to be global, shared, or persisted, so they stay local to the view.
+## Concepts demonstrated
 
-There's intentionally **no Zustand / Context store for app data** — the project
-doesn't have cross-page shared state that would justify one. (Theme and the
-query client *are* in context, because they genuinely are app-wide.)
-
-## Data layer
-
-All three list endpoints share one generic engine,
-[`queryList`](src/lib/query.ts), which searches, filters, sorts, and paginates
-any array of records. So each API route is only a few lines:
-
-```ts
-const query = parseListQuery(request.nextUrl.searchParams, {
-  searchFields: ["name", "sku"],
-  filterKeys: ["category", "status"],
-  defaultSort: "createdAt",
-  defaultOrder: "desc",
-});
-return NextResponse.json(queryList(products, query));
-```
-
-Product create/edit/archive mutate the in-memory array, so changes persist
-across requests within a running server.
+- Server components reading `await searchParams` and querying data per request
+- Server Actions (`login`, `logout`, product create/update/archive) with
+  `revalidatePath` — mutation and fresh data in one round trip
+- Optimistic UI with React 19 `useOptimistic` (instant flip, automatic rollback)
+- `useTransition` to surface the server round trip as a pending state
+- Route groups with separate layouts — `(auth)` vs `(admin)`
+- Middleware auth gating (`proxy.ts`); HMAC-signed session tokens
+  (tamper-proof, expiring, unit-tested)
+- Route-level `loading.tsx`, `error.tsx` (error boundary + reset), `not-found.tsx`
+- URL-driven table state (search/filter/sort/pagination as query params)
+- Headless table with TanStack Table in **manual mode** — the server sorts,
+  filters, and paginates; the table only manages view state (column
+  definitions, sort indicators, column visibility)
+- Validation at every trust boundary: URL params parsed and clamped, form
+  values and Server Action inputs Zod-validated, session re-checked per action
+- One generic engine (`queryList<T>`) and one generic table renderer
+  (`DataTable<T>`) shared by all three resources
+- Component + unit testing (Testing Library, 23 tests)
 
 ## Accessibility
 
-- Dialogs and drawers are keyboard-accessible (focus trap, Esc to close) via the
+- Dialogs, drawers, and menus are keyboard-accessible (focus trap, Esc) via the
   underlying primitives.
 - Semantic `<table>` markup; sortable headers are real `<button>`s.
-- All form fields have `<label>`s; invalid fields set `aria-invalid` and show a
-  message. Selects use `aria-label`.
-- Visible focus rings; the active nav link sets `aria-current="page"`.
-- Empty/error states use `role="status"`.
+- All form fields have labels; invalid fields set `aria-invalid` with visible
+  messages; the login error uses `role="alert"`.
+- Visible focus rings; active nav sets `aria-current="page"`; empty/error
+  states use `role="status"`.
 
 ## Assumptions & trade-offs
 
-- **Mock backend is in-memory.** Restarting the server resets created/edited
-  products. Fine for a demo; a real build would use a database.
-- **Detail views reuse the already-fetched row** instead of a separate
-  `GET /:id` request, since the list response already contains the full object —
-  fewer round-trips, instant drawer.
-- **"Immediate local update" via invalidate-and-refetch** rather than hand-rolled
-  optimistic cache edits. With the instant mock API the table updates
-  immediately, and it avoids the complexity of correctly inserting a row into a
-  sorted/filtered/paginated page. The spec allows either.
-- **Filter changes use `router.replace`** (not `push`) so typing in the search
-  box doesn't stack dozens of history entries.
-- **Mock data is generated from a fixed seed** so the dataset is stable across
-  restarts (predictable screenshots and tests); only the dates are relative to
-  "today" so the dashboard always looks current.
-- **Archive instead of delete.** Products are archived (status change) rather
-  than hard-deleted, which is the safer pattern for a catalog.
-- **One product form for add and edit**, switching on whether a product was
-  passed in — less duplication than two near-identical forms.
-- **Column visibility is local state, not URL state.** Filters describe *what
-  data* you're looking at (shareable), hidden columns are a personal view
-  preference — so they deliberately don't pollute the URL.
-- **Chart color contrast was validated, not eyeballed.** The theme's pale mint
-  failed 3:1 contrast for a 2px line on the light surface, so the light-mode
-  `--chart-1` token uses a darker emerald step of the same hue.
-
-## Bonus features implemented
-
-- Unit tests for the query engine and product validation schema (Vitest)
-- GitHub Actions CI: lint, tests, and a production build on every push
-- Product archive action (soft delete)
-- Skeleton loading UI on all tables and stats
-- Clean mobile navigation (slide-in drawer)
-- Table column visibility controls (all three list pages)
-- Chart metric toggle (Revenue / Orders) with themed hover tooltip + crosshair
+- **Mock backend is in-memory** — a server restart resets data. Auth is a
+  demo: one hardcoded user, plaintext comparison; a real app would hash
+  passwords and store sessions/users in a database. The *mechanics* (signed
+  httpOnly cookie, middleware gate) are the production pattern.
+- **`SESSION_SECRET`** falls back to a dev value; set the env var in production.
+- **React Compiler is off** — TanStack Table mutates one stable `table`
+  instance instead of creating new objects, so the compiler's auto-memoization
+  never sees it "change" and the table UI goes stale. Documented in
+  `next.config.ts`.
+- **Detail views reuse the already-queried row** instead of a detail request —
+  the list returns full objects, so the drawer opens instantly.
+- **Create/edit rely on `revalidatePath`; archive is optimistic.** Both
+  strategies shown deliberately: revalidate is simpler and always consistent;
+  optimistic gives instant feedback and needs rollback (which `useOptimistic`
+  handles for free).
+- **Filter changes use `router.replace`** so typing doesn't spam history.
+- **Column visibility is local state, not URL state** — a personal view
+  preference, unlike filters which describe the data and belong in the URL.
+- **Archive instead of delete** — safer for a catalog.
+- **Chart colors were contrast-validated** — light mode's chart line uses a
+  darker emerald step because the theme's pale mint fails 3:1 on white.
 
 ## Screenshots
 
 | | |
 | --- | --- |
+| Login | ![Login](docs/screenshots/login.png) |
 | Dashboard | ![Dashboard](docs/screenshots/dashboard.png) |
 | Dashboard (dark) | ![Dashboard dark](docs/screenshots/dashboard-dark.png) |
 | Products | ![Products](docs/screenshots/products.png) |
@@ -189,4 +241,5 @@ across requests within a running server.
 | Product detail drawer | ![Product detail](docs/screenshots/product-detail.png) |
 | Order detail | ![Order detail](docs/screenshots/order-detail.png) |
 | Customers | ![Customers](docs/screenshots/customers.png) |
+| User menu | ![User menu](docs/screenshots/user-menu.png) |
 | Mobile navigation | ![Mobile nav](docs/screenshots/mobile-nav.png) |

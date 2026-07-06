@@ -12,8 +12,10 @@ import {
 } from "@/components/ui/sheet";
 import { Sidebar } from "./sidebar";
 import { ThemeToggle } from "./theme-toggle";
+import { UserMenu } from "./user-menu";
+import type { SessionUser } from "@/lib/auth";
 
-export function Header() {
+export function Header({ user }: { user: SessionUser }) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   return (
@@ -40,6 +42,7 @@ export function Header() {
 
       <div className="ml-auto flex items-center gap-1">
         <ThemeToggle />
+        <UserMenu user={user} />
       </div>
     </header>
   );
