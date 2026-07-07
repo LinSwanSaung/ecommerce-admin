@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useQueryParams } from "@/hooks/use-query-params";
 
-// Search box for the ?search= param; local state while typing, URL debounced.
 export function SearchInput({ placeholder = "Search…" }: { placeholder?: string }) {
   const { get, setParams } = useQueryParams();
   const [term, setTerm] = useState(() => get("search"));

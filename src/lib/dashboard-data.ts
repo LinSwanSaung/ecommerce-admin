@@ -3,8 +3,6 @@ import type { DashboardData } from "@/types";
 
 const round = (n: number) => Math.round(n * 100) / 100;
 
-// Computes the dashboard summary from the mock data. Shared by the API route
-// (client refetches) and the dashboard server page (initial server render).
 export function getDashboardData(): DashboardData {
   const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
 

@@ -15,7 +15,7 @@ export function ThemeToggle() {
       aria-label="Toggle dark mode"
       onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
     >
-      {/* Icons swap via CSS (not JS) so server and client markup match — no hydration flash. */}
+      {/* icons swap via CSS so server and client markup match, no hydration flash */}
       <Sun className="h-5 w-5 dark:hidden" />
       <Moon className="hidden h-5 w-5 dark:block" />
     </Button>

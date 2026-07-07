@@ -1,4 +1,3 @@
-// Consistent page title + description + optional actions for every route.
 export function PageHeader({
   title,
   description,

@@ -2,17 +2,15 @@ import { cookies } from "next/headers";
 
 import { SESSION_COOKIE, verifySessionToken } from "./session";
 
-// Mock user store — one hardcoded staff account, matching the app's mock
-// backend. A real app would check a database and hash passwords.
+// hardcoded demo user, a real app would hit a DB and hash passwords
 export const DEMO_USER = {
-  email: "admin@acme.com",
+  email: "lin@swansupply.com",
   password: "admin123",
-  name: "Alex Admin",
+  name: "Lin Swan Saung",
 };
 
 export type SessionUser = { email: string; name: string };
 
-// Server-side session lookup (server components / route handlers only).
 export async function getSessionUser(): Promise<SessionUser | null> {
   const store = await cookies();
   const email = verifySessionToken(store.get(SESSION_COOKIE)?.value);

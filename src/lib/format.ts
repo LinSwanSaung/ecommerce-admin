@@ -1,4 +1,3 @@
-// Shared formatters so currency/dates/numbers look identical on every page.
 
 const currency = new Intl.NumberFormat("en-US", {
   style: "currency",

@@ -16,8 +16,6 @@ import {
 import { logout } from "@/lib/auth-actions";
 import type { SessionUser } from "@/lib/auth";
 
-// Current user in the header: avatar with initials, and logout via the
-// `logout` Server Action (clears the session cookie, redirects to /login).
 export function UserMenu({ user }: { user: SessionUser }) {
   const initials = user.name
     .split(" ")

@@ -27,8 +27,6 @@ export function LoginForm() {
     defaultValues: { email: "", password: "" },
   });
 
-  // Calls the `login` Server Action directly. On success it sets the session
-  // cookie and redirects server-side; on failure it returns an error message.
   const onSubmit = handleSubmit(async (values) => {
     const result = await login(values);
     if (result?.error) setError("root", { message: result.error });

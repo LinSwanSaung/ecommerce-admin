@@ -7,10 +7,7 @@ import { getSessionUser } from "./auth";
 import { productInputSchema } from "./product-schema";
 import type { Product } from "@/types";
 
-// Server Actions for product mutations. Each one: checks the session, validates
-// the payload (never trust the client), mutates the mock store, then
-// revalidatePath re-renders the affected pages with fresh data — that server
-// round trip IS the UI update; no client cache to reconcile.
+// every action re-checks the session and re-validates the input, never trust the client
 
 type ActionResult = { error: string } | { product: Product };
 

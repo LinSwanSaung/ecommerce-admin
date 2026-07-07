@@ -73,13 +73,11 @@ export function ProductFormDialog({
   });
   const isSaving = isSubmitting;
 
-  // Seed the form when the dialog opens: the product for edit, blanks for add.
+  // reset the fields whenever the dialog opens
   useEffect(() => {
     if (open) reset(product ? toFormValues(product) : EMPTY);
   }, [open, product, reset]);
 
-  // Calls the create/update Server Action; revalidatePath inside it refreshes
-  // the products list in the same round trip.
   const onSubmit = handleSubmit(async (values) => {
     const input = formValuesToInput(values);
     const result = product
@@ -227,7 +225,7 @@ export function ProductFormDialog({
   );
 }
 
-// Label + control + error. htmlFor optional — Selects are labelled via aria-label.
+// Selects are labelled via aria-label, so htmlFor is optional
 function Field({
   label,
   htmlFor,

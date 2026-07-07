@@ -36,20 +36,15 @@ import type { ListResult, Product } from "@/types";
 
 const categoryOptions = CATEGORIES.map((c) => ({ value: c, label: c }));
 
-// Client view: receives the server-queried page of products as a prop and
-// owns only interactivity — drawers, the form dialog, optimistic archive.
 export function ProductsView({ data }: { data: ListResult<Product> }) {
   const { isPending } = useQueryParams();
   const [, startTransition] = useTransition();
 
-  // Local UI state: which product's detail is open, and the add/edit dialog.
   const [detail, setDetail] = useState<Product | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
 
-  // Optimistic archive (React 19): flip the row's status immediately; when the
-  // Server Action revalidates, the real rows arrive and replace this. If the
-  // action fails, the optimistic state reverts automatically.
+  // flip the row to archived right away, reverts on its own if the action fails
   const [rows, applyArchive] = useOptimistic(
     data.rows,
     (current, archivedId: string) =>
@@ -120,7 +115,7 @@ export function ProductsView({ data }: { data: ListResult<Product> }) {
       enableHiding: false,
       meta: { className: "w-10 text-right" },
       cell: ({ row }) => (
-        // Stop propagation so using the menu doesn't also open the row's detail.
+        // don't open the detail drawer when clicking the menu
         <div onClick={(event) => event.stopPropagation()}>
           <DropdownMenu>
             <DropdownMenuTrigger

@@ -16,9 +16,6 @@ const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-// Server Action: runs on the server, called directly from the login form.
-// Credentials never touch client-side auth logic; the session cookie is
-// httpOnly so client JS can't read or steal it.
 export async function login(values: unknown): Promise<{ error: string } | void> {
   const parsed = loginSchema.safeParse(values);
   if (!parsed.success) return { error: "Invalid email or password" };

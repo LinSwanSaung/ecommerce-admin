@@ -2,7 +2,6 @@ import { Header } from "./header";
 import { Sidebar } from "./sidebar";
 import type { SessionUser } from "@/lib/auth";
 
-// The admin frame: fixed sidebar on desktop, header + main content everywhere.
 export function AppShell({
   user,
   children,

@@ -34,7 +34,7 @@ npm run dev      # http://localhost:3000
 Sign in with the demo account:
 
 ```
-email:    admin@acme.com
+email:    lin@swansupply.com
 password: admin123
 ```
 

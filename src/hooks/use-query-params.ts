@@ -3,19 +3,16 @@
 import { useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-// The one place that reads/writes URL search params (search, filters, sort, page).
 export function useQueryParams() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  // URL changes re-render the page on the server; isPending is true while that
-  // round trip is in flight, so views can show a loading state.
+  // isPending is true while the server round trip is in flight
   const [isPending, startTransition] = useTransition();
 
   const get = (key: string, fallback = "") => searchParams.get(key) ?? fallback;
 
-  // Update one or more params while keeping the rest. Empty/null removes a param
-  // so the URL stays clean. `replace` avoids stacking a history entry per filter.
+  // empty/null deletes the key. replace() so filters don't stack history entries
   const setParams = (updates: Record<string, string | number | null | undefined>) => {
     const next = new URLSearchParams(searchParams);
     for (const [key, value] of Object.entries(updates)) {

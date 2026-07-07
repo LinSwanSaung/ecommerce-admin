@@ -11,8 +11,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-// Show/hide table columns through TanStack Table's visibility API. Columns
-// opt out with `enableHiding: false` (e.g. the actions column).
 export function ColumnToggle<T>({ table }: { table: TableInstance<T> }) {
   return (
     <DropdownMenu>

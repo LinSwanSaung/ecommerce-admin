@@ -5,9 +5,7 @@ import { AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/empty-state";
 
-// Route-level error boundary (Next file convention): catches render errors in
-// any admin page and offers a retry instead of a blank screen. Must be a
-// client component; `reset` re-renders the failed segment.
+// route error boundary, reset() re-renders the failed segment
 export default function AdminError({
   error,
   reset,

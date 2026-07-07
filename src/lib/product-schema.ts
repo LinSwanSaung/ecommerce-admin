@@ -1,7 +1,6 @@
 import { z } from "zod";
 
-// Two schemas: productFormSchema validates the form (all strings, since that's
-// what inputs hold); productInputSchema is the typed API contract.
+// inputs hold strings, so the form schema and the typed input schema are separate
 
 export const productFormSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
@@ -32,7 +31,6 @@ export const productInputSchema = z.object({
 
 export type ProductInput = z.infer<typeof productInputSchema>;
 
-// Convert validated form strings into the typed API payload.
 export const formValuesToInput = (values: ProductFormValues): ProductInput => ({
   name: values.name.trim(),
   sku: values.sku.trim(),

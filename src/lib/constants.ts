@@ -1,6 +1,5 @@
 import type { ProductStatus, OrderStatus, CustomerStatus } from "@/types";
 
-// A select/filter option. Generic so each status list stays type-safe.
 export type Option<T extends string = string> = { value: T; label: string };
 
 export const CATEGORIES = [
@@ -37,7 +36,6 @@ export const CUSTOMER_STATUSES: Option<CustomerStatus>[] = [
   { value: "blocked", label: "Blocked" },
 ];
 
-// value -> human label, across every status type (used by the status badge).
 export const STATUS_LABEL: Record<string, string> = Object.fromEntries(
   [...PRODUCT_STATUSES, ...ORDER_STATUSES, ...CUSTOMER_STATUSES].map((o) => [
     o.value,
@@ -45,8 +43,7 @@ export const STATUS_LABEL: Record<string, string> = Object.fromEntries(
   ]),
 );
 
-// value -> badge color classes (light + dark). Full class strings on purpose:
-// Tailwind only keeps classes it can see literally in the source.
+// full class strings on purpose, Tailwind only keeps classes it sees literally
 export const STATUS_BADGE: Record<string, string> = {
   active: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400",
   draft: "bg-zinc-100 text-zinc-600 dark:bg-zinc-500/15 dark:text-zinc-300",

@@ -9,7 +9,7 @@ import {
 import { useQueryParams } from "@/hooks/use-query-params";
 import type { Option } from "@/lib/constants";
 
-// A dropdown filter bound to a URL param. "all" clears the param (no filter).
+// "all" clears the URL param
 export function FilterSelect({
   paramKey,
   label,

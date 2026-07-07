@@ -3,7 +3,6 @@ import type { LucideIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// A single dashboard metric (revenue, orders, etc.) with its own loading state.
 export function StatCard({
   label,
   value,

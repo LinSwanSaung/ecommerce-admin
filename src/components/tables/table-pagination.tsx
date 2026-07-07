@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button";
 import { useQueryParams } from "@/hooks/use-query-params";
 
-// Reads page/totalPages from the data and writes ?page= back to the URL.
 export function TablePagination({
   page,
   totalPages,

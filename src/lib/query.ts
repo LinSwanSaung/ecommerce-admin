@@ -1,8 +1,7 @@
 import type { ListResult } from "@/types";
 import { PAGE_SIZE } from "./constants";
 
-// Generic search/filter/sort/paginate engine shared by the products, orders,
-// and customers API routes.
+// shared list engine: search -> filter -> sort -> paginate
 
 export type ListQuery = {
   search?: string;
@@ -28,7 +27,7 @@ export function queryList<T extends Record<string, unknown>>(
 ): ListResult<T> {
   let rows = items;
 
-  // Search: case-insensitive substring across the given fields.
+  // case-insensitive substring search
   if (search) {
     const q = search.toLowerCase();
     rows = rows.filter((item) =>
@@ -40,7 +39,7 @@ export function queryList<T extends Record<string, unknown>>(
     );
   }
 
-  // Filters: exact match per key. "all" / empty means "no filter".
+  // exact match per key, "all"/empty means no filter
   if (filters) {
     for (const [key, value] of Object.entries(filters)) {
       if (value && value !== "all") {
@@ -49,8 +48,7 @@ export function queryList<T extends Record<string, unknown>>(
     }
   }
 
-  // Sort: numbers compare numerically, everything else as localized strings
-  // (ISO date strings sort chronologically as a side effect).
+  // numbers sort numerically, everything else as strings (ISO dates end up chronological)
   if (sort) {
     rows = [...rows].sort((a, b) => {
       const av = a[sort];
@@ -63,7 +61,7 @@ export function queryList<T extends Record<string, unknown>>(
     });
   }
 
-  // Paginate (clamp the page so an out-of-range ?page= can't show a blank table).
+  // clamp so an out-of-range ?page= never shows an empty table
   const total = rows.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const safePage = Math.min(Math.max(1, page), totalPages);
@@ -78,8 +76,7 @@ export function queryList<T extends Record<string, unknown>>(
   };
 }
 
-// Adapt a page's `searchParams` prop (plain object, values possibly arrays)
-// into URLSearchParams for parseListQuery().
+// page searchParams prop -> URLSearchParams
 export function toURLSearchParams(
   searchParams: Record<string, string | string[] | undefined>,
 ): URLSearchParams {
@@ -91,7 +88,7 @@ export function toURLSearchParams(
   return params;
 }
 
-// Turn a request's URL params into a typed ListQuery for queryList().
+// URL params -> validated ListQuery
 export function parseListQuery(
   searchParams: URLSearchParams,
   opts: {

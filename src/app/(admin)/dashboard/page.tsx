@@ -6,8 +6,6 @@ import { DashboardView } from "./dashboard-view";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
-// Server component: computes the dashboard data on the server; the page
-// arrives fully populated and the client view only handles interactivity.
 export default function DashboardPage() {
   const data = getDashboardData();
 

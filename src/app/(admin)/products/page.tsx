@@ -7,10 +7,7 @@ import { ProductsView } from "./products-view";
 
 export const metadata: Metadata = { title: "Products" };
 
-// Server component: reads the URL's search params (a Promise in Next 16),
-// runs the query against the data layer directly — no HTTP hop — and passes
-// the result down as props. Changing a filter updates the URL, which re-runs
-// this on the server with the new params.
+// searchParams is a Promise in Next 16
 export default async function ProductsPage({
   searchParams,
 }: {

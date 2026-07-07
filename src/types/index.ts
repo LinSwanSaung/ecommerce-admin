@@ -1,4 +1,4 @@
-// Domain models shared across the app (UI, API routes, mock data).
+// domain models
 
 export type ProductStatus = "active" | "draft" | "archived" | "out_of_stock";
 
@@ -55,7 +55,7 @@ export type Customer = {
   recentOrders: CustomerOrderSummary[];
 };
 
-// Every list API route returns this shape.
+// what queryList returns
 export type ListResult<T> = {
   rows: T[];
   total: number;

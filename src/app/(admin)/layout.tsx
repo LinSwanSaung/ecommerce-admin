@@ -3,9 +3,7 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { getSessionUser } from "@/lib/auth";
 
-// Layout for the admin route group: reads the session server-side and wraps
-// every admin page in the shell. proxy.ts already guards these routes; the
-// redirect here is defense in depth.
+// proxy.ts already redirects unauthenticated users, this check is a safety net
 export default async function AdminLayout({
   children,
 }: {

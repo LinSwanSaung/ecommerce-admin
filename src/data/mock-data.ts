@@ -9,10 +9,9 @@ import type {
 } from "@/types";
 import { CATEGORIES } from "@/lib/constants";
 
-// In-memory mock dataset: generated at server start, mutated by the product API
-// routes. A restart resets it — fine for a demo.
+// in-memory data, resets on every server restart
 
-// Seeded PRNG (mulberry32) so every start generates the same data.
+// seeded PRNG so every start generates the same data
 function mulberry32(seed: number) {
   return () => {
     seed |= 0;

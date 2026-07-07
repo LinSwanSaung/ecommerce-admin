@@ -6,12 +6,12 @@ afterEach(() => vi.useRealTimers());
 
 describe("session tokens", () => {
   it("verifies a token it created (round trip)", () => {
-    const token = createSessionToken("admin@acme.com");
-    expect(verifySessionToken(token)).toBe("admin@acme.com");
+    const token = createSessionToken("lin@swansupply.com");
+    expect(verifySessionToken(token)).toBe("lin@swansupply.com");
   });
 
   it("rejects a tampered token", () => {
-    const token = createSessionToken("admin@acme.com");
+    const token = createSessionToken("lin@swansupply.com");
     // Forge the payload to a different email, keep the original signature.
     const forgedPayload = Buffer.from(
       `hacker@evil.com|${Date.now() + 100_000}`,
@@ -28,8 +28,8 @@ describe("session tokens", () => {
   });
 
   it("rejects an expired token", () => {
-    const token = createSessionToken("admin@acme.com");
-    // Jump 8 days into the future — past the 7-day expiry.
+    const token = createSessionToken("lin@swansupply.com");
+    // jump 8 days ahead, past the 7-day expiry
     vi.useFakeTimers();
     vi.setSystemTime(Date.now() + 8 * 24 * 60 * 60 * 1000);
     expect(verifySessionToken(token)).toBeNull();

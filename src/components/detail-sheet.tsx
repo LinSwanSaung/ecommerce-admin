@@ -8,7 +8,6 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 
-// Shared right-side drawer for product/order/customer details.
 export function DetailSheet({
   open,
   onOpenChange,
@@ -38,7 +37,6 @@ export function DetailSheet({
   );
 }
 
-// A label/value row for detail panels.
 export function DetailRow({
   label,
   children,

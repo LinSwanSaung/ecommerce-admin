@@ -12,7 +12,6 @@ export type NavItem = {
   icon: LucideIcon;
 };
 
-// Single source of truth for navigation (desktop sidebar + mobile drawer).
 export const navItems: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Products", href: "/products", icon: Package },

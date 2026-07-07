@@ -14,7 +14,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-// Column defs can carry styling for their header + cells via `meta`.
+// lets a column def set width/alignment classes via meta
 declare module "@tanstack/react-table" {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface ColumnMeta<TData, TValue> {
@@ -22,9 +22,6 @@ declare module "@tanstack/react-table" {
   }
 }
 
-// The shared table renderer. It draws whatever a TanStack Table instance
-// (from useDataTable) says is visible — header groups, sorted indicators,
-// rows — plus our loading skeletons and the empty slot.
 export function DataTable<T>({
   table,
   isLoading,
@@ -111,8 +108,7 @@ export function DataTable<T>({
   );
 }
 
-// Sortable header: TanStack's toggle handler cycles asc -> desc -> unsorted,
-// and useDataTable translates each change into ?sort=&order= URL params.
+// clicking cycles asc -> desc -> none, useDataTable writes it to the URL
 function SortButton<T>({
   column,
   children,

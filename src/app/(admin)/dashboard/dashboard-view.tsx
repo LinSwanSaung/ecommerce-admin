@@ -54,8 +54,6 @@ const recentOrderColumns: ColumnDef<Order>[] = [
   },
 ];
 
-// Client view for interactivity only (chart metric tab, table rendering);
-// all data arrives server-rendered via props.
 export function DashboardView({ data }: { data: DashboardData }) {
   const [metric, setMetric] = useState<ChartMetric>("revenue");
 

@@ -2,7 +2,7 @@ import type { LucideIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 
-// Used for both "no results" and error states; role="status" for screen readers.
+// role="status" so screen readers announce it
 export function EmptyState({
   icon: Icon,
   title,

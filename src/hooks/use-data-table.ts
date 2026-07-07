@@ -12,12 +12,8 @@ import {
 
 import { useQueryParams } from "./use-query-params";
 
-// Builds a TanStack Table instance wired to our server-side data model:
-// - manual* modes: the SERVER does the actual sorting/filtering/pagination
-//   (driven by the URL); the table only manages view state.
-// - sorting state is derived from ?sort=&order= and written back to the URL,
-//   so the server re-queries when a header is clicked.
-// - column visibility is client-only view preference.
+// manual mode: the server does the real sorting/filtering/paging, this
+// instance only holds view state and mirrors ?sort=&order= from the URL
 export function useDataTable<T>({
   columns,
   rows,
@@ -35,7 +31,6 @@ export function useDataTable<T>({
     ? [{ id: sort, desc: get("order") === "desc" }]
     : [];
 
-  // TanStack hands us the next sorting state; we translate it into URL params.
   const onSortingChange = (updater: Updater<SortingState>) => {
     const next = typeof updater === "function" ? updater(sorting) : updater;
     const first = next[0];

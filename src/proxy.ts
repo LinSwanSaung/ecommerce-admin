@@ -2,9 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { SESSION_COOKIE, verifySessionToken } from "@/lib/session";
 
-// Runs before every matched request (Next 16's middleware, renamed "proxy").
-// Auth gate: no valid session -> redirect to /login; already signed in ->
-// /login redirects back to the dashboard.
+// Next 16 renamed middleware to proxy. Redirects based on session state.
 export function proxy(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   const isAuthed = verifySessionToken(token) !== null;

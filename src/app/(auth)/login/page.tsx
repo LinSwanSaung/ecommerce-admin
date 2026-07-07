@@ -18,11 +18,11 @@ export default function LoginPage() {
       <CardHeader>
         <div className="mb-2 flex items-center gap-2 font-semibold">
           <Package2 className="h-6 w-6" />
-          Acme Admin
+          Swan Supply
         </div>
         <CardTitle>Sign in</CardTitle>
         <CardDescription>
-          Use the demo account: admin@acme.com / admin123
+          Use the demo account: lin@swansupply.com / admin123
         </CardDescription>
       </CardHeader>
       <CardContent>
