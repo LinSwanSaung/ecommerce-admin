@@ -1,6 +1,7 @@
 "use client";
 
 import { LogOut } from "lucide-react";
+import { toast } from "sonner";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -42,7 +43,15 @@ export function UserMenu({ user }: { user: SessionUser }) {
           </DropdownMenuLabel>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={() => logout()}>
+        <DropdownMenuItem
+          onClick={async () => {
+            try {
+              await logout();
+            } catch {
+              toast.error("Something went wrong. Please try again.");
+            }
+          }}
+        >
           <LogOut />
           Log out
         </DropdownMenuItem>
