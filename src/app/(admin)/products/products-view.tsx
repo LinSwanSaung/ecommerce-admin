@@ -1,6 +1,7 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
+import Link from "next/link";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   Archive,
@@ -83,7 +84,14 @@ export function ProductsView({ data }: { data: ListResult<Product> }) {
       accessorKey: "name",
       header: "Name",
       cell: ({ row }) => (
-        <span className="font-medium">{row.original.name}</span>
+        // link to the full page; row click still opens the quick-view drawer
+        <Link
+          href={`/products/${row.original.id}`}
+          className="font-medium hover:underline"
+          onClick={(event) => event.stopPropagation()}
+        >
+          {row.original.name}
+        </Link>
       ),
     },
     {

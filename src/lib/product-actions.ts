@@ -49,6 +49,7 @@ export async function updateProduct(
   products[index] = { ...products[index], ...parsed.data };
 
   refresh();
+  revalidatePath(`/products/${id}`); // the detail page shows this product too
   return { product: products[index] };
 }
 
