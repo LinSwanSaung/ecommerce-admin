@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { queryList } from "./query";
+import { parseListQuery, queryList } from "./query";
 
 type Row = { name: string; sku: string; price: number; status: string };
 
@@ -46,5 +46,36 @@ describe("queryList", () => {
     const result = queryList(rows, { searchFields: [], page: 99, pageSize: 2 });
     expect(result.page).toBe(2); // last valid page
     expect(result.rows).toHaveLength(2);
+  });
+});
+
+describe("parseListQuery", () => {
+  const opts = {
+    searchFields: ["name"],
+    filterKeys: ["status"],
+    sortKeys: ["name", "price"],
+    defaultSort: "name",
+  };
+
+  it("accepts an allow-listed sort field", () => {
+    const q = parseListQuery(new URLSearchParams("sort=price&order=desc"), opts);
+    expect(q.sort).toBe("price");
+    expect(q.order).toBe("desc");
+  });
+
+  it("falls back to the default for sort fields not on the allow-list", () => {
+    expect(parseListQuery(new URLSearchParams("sort=hacked"), opts).sort).toBe("name");
+    expect(parseListQuery(new URLSearchParams("sort=__proto__"), opts).sort).toBe("name");
+  });
+
+  it("rejects junk page values", () => {
+    expect(parseListQuery(new URLSearchParams("page=2.5"), opts).page).toBe(1);
+    expect(parseListQuery(new URLSearchParams("page=-3"), opts).page).toBe(1);
+    expect(parseListQuery(new URLSearchParams("page=abc"), opts).page).toBe(1);
+  });
+
+  it("only reads filters from the declared keys", () => {
+    const q = parseListQuery(new URLSearchParams("status=active&role=admin"), opts);
+    expect(q.filters).toEqual({ status: "active" });
   });
 });

@@ -17,6 +17,7 @@ export default async function ProductsPage({
   const query = parseListQuery(params, {
     searchFields: ["name", "sku"],
     filterKeys: ["category", "status"],
+    sortKeys: ["name", "price", "stock", "status", "createdAt"],
     defaultSort: "createdAt",
     defaultOrder: "desc",
   });

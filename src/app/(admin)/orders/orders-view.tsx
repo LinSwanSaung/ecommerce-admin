@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { SearchX } from "lucide-react";
+import { Eye, SearchX } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/tables/data-table";
 import { SearchInput } from "@/components/tables/search-input";
 import { FilterSelect } from "@/components/tables/filter-select";
@@ -18,35 +19,53 @@ import { formatCurrency, formatDate } from "@/lib/format";
 import { ORDER_STATUSES } from "@/lib/constants";
 import type { ListResult, Order } from "@/types";
 
-const columns: ColumnDef<Order>[] = [
-  {
-    accessorKey: "id",
-    header: "Order",
-    cell: ({ row }) => <span className="font-medium">{row.original.id}</span>,
-  },
-  { accessorKey: "customerName", header: "Customer", enableSorting: false },
-  {
-    accessorKey: "date",
-    header: "Date",
-    meta: { className: "hidden md:table-cell" },
-    cell: ({ row }) => formatDate(row.original.date),
-  },
-  {
-    accessorKey: "total",
-    header: "Total",
-    meta: { className: "text-right" },
-    cell: ({ row }) => formatCurrency(row.original.total),
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => <StatusBadge status={row.original.status} />,
-  },
-];
-
 export function OrdersView({ data }: { data: ListResult<Order> }) {
   const { isPending } = useQueryParams();
   const [detail, setDetail] = useState<Order | null>(null);
+
+  const columns: ColumnDef<Order>[] = [
+    {
+      accessorKey: "id",
+      header: "Order",
+      cell: ({ row }) => <span className="font-medium">{row.original.id}</span>,
+    },
+    { accessorKey: "customerName", header: "Customer", enableSorting: false },
+    {
+      accessorKey: "date",
+      header: "Date",
+      meta: { className: "hidden md:table-cell" },
+      cell: ({ row }) => formatDate(row.original.date),
+    },
+    {
+      accessorKey: "total",
+      header: "Total",
+      meta: { className: "text-right" },
+      cell: ({ row }) => formatCurrency(row.original.total),
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => <StatusBadge status={row.original.status} />,
+    },
+    {
+      id: "actions",
+      header: "",
+      enableSorting: false,
+      enableHiding: false,
+      meta: { className: "w-10 text-right" },
+      // row click opens the detail too, this button is the keyboard path
+      cell: ({ row }) => (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="View details"
+          onClick={() => setDetail(row.original)}
+        >
+          <Eye />
+        </Button>
+      ),
+    },
+  ];
 
   const table = useDataTable({
     columns,

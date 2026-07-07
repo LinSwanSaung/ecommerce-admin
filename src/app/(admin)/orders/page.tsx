@@ -16,6 +16,7 @@ export default async function OrdersPage({
   const query = parseListQuery(params, {
     searchFields: ["id", "customerName"],
     filterKeys: ["status"],
+    sortKeys: ["id", "date", "total", "status"],
     defaultSort: "date",
     defaultOrder: "desc",
   });

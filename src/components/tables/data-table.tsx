@@ -48,6 +48,7 @@ export function DataTable<T>({
                 <TableHead
                   key={header.id}
                   className={header.column.columnDef.meta?.className}
+                  aria-sort={ariaSort(header.column)}
                 >
                   {header.isPlaceholder ? null : header.column.getCanSort() ? (
                     <SortButton column={header.column}>
@@ -106,6 +107,16 @@ export function DataTable<T>({
       </Table>
     </div>
   );
+}
+
+function ariaSort<T>(column: Column<T>) {
+  if (!column.getCanSort()) return undefined;
+  const sorted = column.getIsSorted();
+  return sorted === "asc"
+    ? "ascending"
+    : sorted === "desc"
+      ? "descending"
+      : "none";
 }
 
 // clicking cycles asc -> desc -> none, useDataTable writes it to the URL

@@ -94,6 +94,7 @@ export function parseListQuery(
   opts: {
     searchFields: string[];
     filterKeys: string[];
+    sortKeys: string[];
     defaultSort?: string;
     defaultOrder?: "asc" | "desc";
     pageSize?: number;
@@ -107,17 +108,20 @@ export function parseListQuery(
 
   const page = Number(searchParams.get("page"));
   const order = searchParams.get("order");
+  const sort = searchParams.get("sort");
 
   return {
     search: searchParams.get("search") ?? undefined,
     searchFields: opts.searchFields,
     filters,
-    sort: searchParams.get("sort") ?? opts.defaultSort,
+    // sort fields are allow-listed like the filters (a real backend would
+    // otherwise take user input straight into ORDER BY)
+    sort: sort && opts.sortKeys.includes(sort) ? sort : opts.defaultSort,
     order:
       order === "asc" || order === "desc"
         ? order
         : (opts.defaultOrder ?? "asc"),
-    page: Number.isFinite(page) && page > 0 ? page : 1,
+    page: Number.isInteger(page) && page > 0 ? page : 1,
     pageSize: opts.pageSize,
   };
 }

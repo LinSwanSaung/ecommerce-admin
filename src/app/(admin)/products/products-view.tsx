@@ -4,6 +4,7 @@ import { useOptimistic, useState, useTransition } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   Archive,
+  Eye,
   MoreHorizontal,
   PackageSearch,
   Pencil,
@@ -126,6 +127,11 @@ export function ProductsView({ data }: { data: ListResult<Product> }) {
               <MoreHorizontal />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              {/* row click opens this too, but the menu is the keyboard path */}
+              <DropdownMenuItem onClick={() => setDetail(row.original)}>
+                <Eye />
+                View details
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => openEdit(row.original)}>
                 <Pencil />
                 Edit
