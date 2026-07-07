@@ -59,9 +59,14 @@ export function ProductsView({ data }: { data: ListResult<Product> }) {
   const archive = (id: string) =>
     startTransition(async () => {
       applyArchive(id);
-      const result = await archiveProduct(id);
-      if ("error" in result) toast.error(result.error);
-      else toast.success("Product archived");
+      try {
+        const result = await archiveProduct(id);
+        if ("error" in result) toast.error(result.error);
+        else toast.success("Product archived");
+      } catch {
+        // failed action ends the transition, so the optimistic flip reverts too
+        toast.error("Something went wrong. Please try again.");
+      }
     });
 
   const openAdd = () => {

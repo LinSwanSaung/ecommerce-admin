@@ -28,8 +28,13 @@ export function LoginForm() {
   });
 
   const onSubmit = handleSubmit(async (values) => {
-    const result = await login(values);
-    if (result?.error) setError("root", { message: result.error });
+    try {
+      const result = await login(values);
+      if (result?.error) setError("root", { message: result.error });
+    } catch {
+      // the action itself failed (network down, server unreachable)
+      setError("root", { message: "Something went wrong. Please try again." });
+    }
   });
 
   return (

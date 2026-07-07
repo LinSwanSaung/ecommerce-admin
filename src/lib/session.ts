@@ -1,4 +1,4 @@
-import { createHmac } from "node:crypto";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 // token = base64url("email|expiresAt") + "." + HMAC signature.
 // server-only, never import from client code
@@ -21,7 +21,12 @@ export function verifySessionToken(token: string | undefined): string | null {
   const [payload, signature] = token.split(".");
   if (!payload || !signature) return null;
 
-  if (sign(payload) !== signature) return null; // tampered or wrong secret
+  // constant-time compare, a plain !== would leak how close a guess was
+  const expected = Buffer.from(sign(payload));
+  const received = Buffer.from(signature);
+  if (expected.length !== received.length || !timingSafeEqual(expected, received)) {
+    return null; // tampered or wrong secret
+  }
 
   const [email, expiresAt] = Buffer.from(payload, "base64url")
     .toString()

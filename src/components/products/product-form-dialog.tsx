@@ -80,16 +80,20 @@ export function ProductFormDialog({
 
   const onSubmit = handleSubmit(async (values) => {
     const input = formValuesToInput(values);
-    const result = product
-      ? await updateProduct(product.id, input)
-      : await createProduct(input);
+    try {
+      const result = product
+        ? await updateProduct(product.id, input)
+        : await createProduct(input);
 
-    if ("error" in result) {
-      toast.error(result.error); // keep the dialog open for another attempt
-      return;
+      if ("error" in result) {
+        toast.error(result.error); // keep the dialog open for another attempt
+        return;
+      }
+      toast.success(product ? "Product updated" : "Product created");
+      onOpenChange(false);
+    } catch {
+      toast.error("Something went wrong. Please try again.");
     }
-    toast.success(product ? "Product updated" : "Product created");
-    onOpenChange(false);
   });
 
   return (
