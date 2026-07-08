@@ -14,16 +14,13 @@ export const metadata: Metadata = { title: "Sign in" };
 
 export default function LoginPage() {
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader>
-        <div className="mb-2 flex items-center gap-2 font-semibold">
+    <Card className="w-full max-w-sm shadow-lg">
+      <CardHeader className="items-center text-center">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
           <Package2 className="h-6 w-6" />
-          Swan Supply
         </div>
-        <CardTitle>Sign in</CardTitle>
-        <CardDescription>
-          Use the demo account: lin@swansupply.com / admin123
-        </CardDescription>
+        <CardTitle className="text-xl">Welcome back</CardTitle>
+        <CardDescription>Sign in to the Swan Supply admin</CardDescription>
       </CardHeader>
       <CardContent>
         <LoginForm />
