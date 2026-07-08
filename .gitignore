@@ -40,6 +40,3 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# local AI-assistant config (not part of the submission)
-CLAUDE.md
-AGENTS.md
