@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { unstable_rethrow } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -39,8 +40,10 @@ export function LoginForm() {
     try {
       const result = await login(values);
       if (result?.error) setError("root", { message: result.error });
-    } catch {
-      // the action itself failed (network down, server unreachable)
+    } catch (error) {
+      // a successful login "throws" Next's redirect, hand it back to Next
+      unstable_rethrow(error);
+      // anything else is a real failure (network down, server unreachable)
       setError("root", { message: "Something went wrong. Please try again." });
     }
   });

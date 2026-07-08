@@ -1,5 +1,6 @@
 "use client";
 
+import { unstable_rethrow } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { toast } from "sonner";
 
@@ -47,7 +48,9 @@ export function UserMenu({ user }: { user: SessionUser }) {
           onClick={async () => {
             try {
               await logout();
-            } catch {
+            } catch (error) {
+              // a successful logout "throws" Next's redirect, hand it back to Next
+              unstable_rethrow(error);
               toast.error("Something went wrong. Please try again.");
             }
           }}
