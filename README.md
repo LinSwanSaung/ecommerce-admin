@@ -11,6 +11,23 @@ updates). The data itself is a mocked in-memory dataset, but the wiring —
 httpOnly session cookie, middleware-guarded routes, URL-driven
 search/filter/sort/pagination — is the production pattern.
 
+## Features
+
+- **Dashboard** — revenue/orders chart, summary stats, recent orders.
+- **Products** — searchable, filterable, sortable, paginated table (all state
+  in the URL); add/edit in a tabbed dialog (details, image upload, variants);
+  quick-view modal on row click and a full detail page per product with an
+  image gallery, description, tags, and a variants table; archive with
+  optimistic UI.
+- **Product domain** — name, description, SKU, brand, category, tags, images,
+  price, stock, status, and **variants** (a one-to-many: each variant has its
+  own name, SKU, price, and stock).
+- **Orders & customers** — the same table engine and quick-view pattern.
+- **Auth** — login/logout with an HMAC-signed httpOnly session cookie,
+  middleware route gating, and per-action session re-checks.
+- **Polish** — dark mode, responsive layouts down to mobile, collapsible
+  sticky sidebar, loading skeletons, route-level error boundaries, toasts.
+
 ## Tech stack
 
 | Tool | Why |
@@ -18,7 +35,7 @@ search/filter/sort/pagination — is the production pattern.
 | **Next.js 16 (App Router) + TypeScript** | Server components, Server Actions, route groups, middleware (`proxy.ts`), `loading`/`error` file conventions. |
 | **Tailwind CSS + shadcn/ui** | Accessible components copied *into* the repo (built on Base UI primitives), so they're owned and editable, not a black box. |
 | **TanStack Table (headless)** | Column definitions, sorting state, column visibility — logic only, we own all the markup. |
-| **React Hook Form + Zod** | One schema validates the product form on the client *and* the Server Action input on the server. |
+| **React Hook Form + Zod** | One schema validates the product form on the client *and* the Server Action input on the server; `useFieldArray` drives the dynamic variant rows. |
 | **Session auth (no library)** | HMAC-signed tokens in an httpOnly cookie, verified in middleware — small enough to own and explain. |
 | **next-themes + Sonner** | Dark mode and toast notifications. |
 | **Recharts** | The dashboard revenue/orders chart. |
@@ -127,12 +144,15 @@ src/
       error.tsx           #   route-level error boundary with retry
       dashboard/          #   page.tsx (server: computes stats) + dashboard-view.tsx
       products/           #   page.tsx (server: queries the list) + products-view.tsx
+        [id]/             #   full product detail page (gallery, variants, 404 via notFound)
       orders/             #   page.tsx + orders-view.tsx
       customers/          #   page.tsx + customers-view.tsx
   components/
     layout/               # sidebar, header, app-shell, user-menu, theme-toggle
     tables/               # data-table, pagination, search, filter, column-toggle
-    products/             # product-form-dialog (add/edit)
+    products/             # product-form-dialog (tabbed add/edit), image-picker,
+                          #   product-gallery (hero + thumbnails)
+    detail-modal.tsx      # centered quick-view shared by products/orders/customers
     dashboard/            # sales-chart (revenue/orders metric chart)
     ui/                   # shadcn/ui primitives (untouched)
   hooks/
@@ -147,8 +167,10 @@ src/
     query.ts              # shared search/filter/sort/paginate engine
     dashboard-data.ts     # dashboard summary (totals, daily stats, recent orders)
     product-schema.ts     # Zod schemas (form values + action input)
-  data/mock-data.ts       # seeded in-memory dataset
-  types/                  # domain models
+  data/
+    mock-data.ts          # seeded in-memory dataset (deterministic PRNG)
+    product-images.ts     # curated per-product-type photo URLs for the seeds
+  types/                  # domain models (Product, ProductVariant, Order, …)
 ```
 
 ## State management
@@ -169,8 +191,9 @@ Four kinds of state, each held where it belongs:
    feedback with automatic rollback.
 3. **Session = an httpOnly cookie**, read server-side (middleware, layout,
    actions), never client JavaScript.
-4. **Local `useState` = ephemeral UI.** Open drawer/dialog, hidden table
-   columns, the chart's metric tab.
+4. **Local `useState` = ephemeral UI.** Open modal/dialog, the form's active
+   tab, the gallery's selected image, hidden table columns, the collapsed
+   sidebar, the chart's metric tab.
 
 No global store — there's no cross-page client state that would justify one.
 
@@ -191,9 +214,20 @@ No global store — there's no cross-page client state that would justify one.
   definitions, sort indicators, column visibility)
 - Validation at every trust boundary: URL params parsed and clamped, form
   values and Server Action inputs Zod-validated, session re-checked per action
+- Dynamic form arrays with `useFieldArray` — add/remove variant rows, each
+  row validated, registered by index path (`variants.${i}.price`)
+- A tabbed dialog form (details / images / variants) that keeps hidden tabs
+  mounted so React Hook Form retains their state, and jumps to the tab
+  holding the first validation error on submit
+- Client-side file uploads read into data URLs (`FileReader`) — the mock has
+  no storage backend; swapping in blob storage changes one step, not the model
+- `next/image` with remote patterns — seeded product photos are optimized and
+  cached through the image optimizer; data-URL uploads bypass it
+- Server/client composition at the leaves: the detail page is a server
+  component, and only the gallery (selected-image state) is a client component
 - One generic engine (`queryList<T>`) and one generic table renderer
   (`DataTable<T>`) shared by all three resources
-- Component + unit testing (Testing Library, 23 tests)
+- Component + unit testing (Testing Library, 27 tests)
 
 ## Accessibility
 
@@ -216,8 +250,17 @@ No global store — there's no cross-page client state that would justify one.
   instance instead of creating new objects, so the compiler's auto-memoization
   never sees it "change" and the table UI goes stale. Documented in
   `next.config.ts`.
-- **Detail views reuse the already-queried row** instead of a detail request —
-  the list returns full objects, so the drawer opens instantly.
+- **Quick-view reuses the already-queried row** instead of a detail request —
+  the list returns full objects, so the modal opens instantly; the full
+  detail page (`/products/[id]`) does its own lookup and `notFound()`.
+- **Image uploads become data URLs** — there is no storage backend in the
+  mock, so picked files are read in the browser and stored as strings on the
+  product. In production this one step becomes an upload to blob storage
+  (S3/Vercel Blob) that returns a URL; `images: string[]` doesn't change.
+- **Seed photos are curated, not random** — a hand-picked set of Wikimedia
+  Commons photos per product type (`data/product-images.ts`), so a camera
+  product actually shows cameras. Keyword-based placeholder services were
+  evaluated and rejected for poor relevance.
 - **Create/edit rely on `revalidatePath`; archive is optimistic.** Both
   strategies shown deliberately: revalidate is simpler and always consistent;
   optimistic gives instant feedback and needs rollback (which `useOptimistic`
@@ -237,8 +280,9 @@ No global store — there's no cross-page client state that would justify one.
 | Dashboard | ![Dashboard](docs/screenshots/dashboard.png) |
 | Dashboard (dark) | ![Dashboard dark](docs/screenshots/dashboard-dark.png) |
 | Products | ![Products](docs/screenshots/products.png) |
-| Add product — validation | ![Form validation](docs/screenshots/product-form-validation.png) |
-| Product detail drawer | ![Product detail](docs/screenshots/product-detail.png) |
+| Add product — validation (tabbed form) | ![Form validation](docs/screenshots/product-form-validation.png) |
+| Product detail page — gallery & variants | ![Product page](docs/screenshots/product-page.png) |
+| Product quick-view modal | ![Product detail](docs/screenshots/product-detail.png) |
 | Order detail | ![Order detail](docs/screenshots/order-detail.png) |
 | Customers | ![Customers](docs/screenshots/customers.png) |
 | User menu | ![User menu](docs/screenshots/user-menu.png) |
