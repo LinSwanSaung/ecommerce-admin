@@ -14,7 +14,6 @@ export const CATEGORIES = [
 ] as const;
 
 export const BRANDS = [
-  "Acme",
   "Northwind",
   "Globex",
   "Umbra",

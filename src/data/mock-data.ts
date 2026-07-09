@@ -8,6 +8,7 @@ import type {
   CustomerStatus,
 } from "@/types";
 import { BRANDS, CATEGORIES } from "@/lib/constants";
+import { PRODUCT_IMAGES } from "./product-images";
 
 // in-memory data, resets on every server restart
 
@@ -79,11 +80,8 @@ function makeProducts(count: number): Product[] {
       brand,
       category,
       tags: sample(TAG_POOL, int(1, 3)),
-      // deterministic placeholder images, seeded by product id
-      images: Array.from(
-        { length: 3 },
-        (_, n) => `https://picsum.photos/seed/${id}-${n}/600/600`,
-      ),
+      // curated photos matching the product type (a "Lite Camera" shows cameras)
+      images: [...(PRODUCT_IMAGES[noun] ?? [])],
       variants,
       price,
       stock: status === "out_of_stock" ? 0 : int(0, 240),

@@ -1,7 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Controller, useFieldArray, useForm } from "react-hook-form";
+import {
+  Controller,
+  useFieldArray,
+  useForm,
+  type Control,
+} from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -34,6 +39,12 @@ import {
 import { createProduct, updateProduct } from "@/lib/product-actions";
 import { ImagePicker } from "./image-picker";
 import type { Product } from "@/types";
+
+const BRAND_OPTIONS = BRANDS.map((brand) => ({ value: brand, label: brand }));
+const CATEGORY_OPTIONS = CATEGORIES.map((category) => ({
+  value: category,
+  label: category,
+}));
 
 const EMPTY: ProductFormValues = {
   name: "",
@@ -129,22 +140,12 @@ export function ProductFormDialog({
         toast.error("Something went wrong. Please try again.");
       }
     },
-    // a hidden tab could hold the invalid field, so surface it (details first)
+    // a hidden tab could hold the invalid field, so surface it (details first;
+    // images and variants have their own tabs, every other field lives on details)
     (formErrors) => {
-      const detailsInvalid = (
-        [
-          "name",
-          "description",
-          "sku",
-          "brand",
-          "category",
-          "tags",
-          "price",
-          "stock",
-          "status",
-        ] as const
-      ).some((key) => formErrors[key]);
-      if (detailsInvalid) setTab("details");
+      const keys = Object.keys(formErrors);
+      if (keys.some((key) => key !== "images" && key !== "variants"))
+        setTab("details");
       else if (formErrors.images) setTab("images");
       else if (formErrors.variants) setTab("variants");
     },
@@ -204,67 +205,23 @@ export function ProductFormDialog({
                     />
                   </Field>
 
-                  <Field label="Brand" error={errors.brand?.message}>
-                    <Controller
-                      control={control}
-                      name="brand"
-                      render={({ field }) => (
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                        >
-                          <SelectTrigger
-                            className="w-full"
-                            aria-label="Brand"
-                            aria-invalid={!!errors.brand}
-                          >
-                            <span className="truncate">
-                              {field.value || "Select brand"}
-                            </span>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {BRANDS.map((brand) => (
-                              <SelectItem key={brand} value={brand}>
-                                {brand}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                  </Field>
+                  <SelectField
+                    control={control}
+                    name="brand"
+                    label="Brand"
+                    options={BRAND_OPTIONS}
+                    error={errors.brand?.message}
+                  />
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <Field label="Category" error={errors.category?.message}>
-                    <Controller
-                      control={control}
-                      name="category"
-                      render={({ field }) => (
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                        >
-                          <SelectTrigger
-                            className="w-full"
-                            aria-label="Category"
-                            aria-invalid={!!errors.category}
-                          >
-                            <span className="truncate">
-                              {field.value || "Select category"}
-                            </span>
-                          </SelectTrigger>
-                          <SelectContent>
-                            {CATEGORIES.map((category) => (
-                              <SelectItem key={category} value={category}>
-                                {category}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    />
-                  </Field>
+                  <SelectField
+                    control={control}
+                    name="category"
+                    label="Category"
+                    options={CATEGORY_OPTIONS}
+                    error={errors.category?.message}
+                  />
 
                   <Field
                     label="Tags"
@@ -312,37 +269,13 @@ export function ProductFormDialog({
                   </Field>
                 </div>
 
-                <Field label="Status" error={errors.status?.message}>
-                  <Controller
-                    control={control}
-                    name="status"
-                    render={({ field }) => (
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <SelectTrigger
-                          className="w-full"
-                          aria-label="Status"
-                          aria-invalid={!!errors.status}
-                        >
-                          <span className="truncate">
-                            {PRODUCT_STATUSES.find(
-                              (s) => s.value === field.value,
-                            )?.label ?? "Select status"}
-                          </span>
-                        </SelectTrigger>
-                        <SelectContent>
-                          {PRODUCT_STATUSES.map((status) => (
-                            <SelectItem key={status.value} value={status.value}>
-                              {status.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
-                </Field>
+                <SelectField
+                  control={control}
+                  name="status"
+                  label="Status"
+                  options={PRODUCT_STATUSES}
+                  error={errors.status?.message}
+                />
               </TabsContent>
 
               <TabsContent value="images" keepMounted className="space-y-4">
@@ -455,6 +388,51 @@ export function ProductFormDialog({
         </form>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// One Controller-wrapped Select for the fixed-option string fields.
+function SelectField({
+  control,
+  name,
+  label,
+  options,
+  error,
+}: {
+  control: Control<ProductFormValues>;
+  name: "brand" | "category" | "status";
+  label: string;
+  options: readonly { value: string; label: string }[];
+  error?: string;
+}) {
+  return (
+    <Field label={label} error={error}>
+      <Controller
+        control={control}
+        name={name}
+        render={({ field }) => (
+          <Select value={field.value} onValueChange={field.onChange}>
+            <SelectTrigger
+              className="w-full"
+              aria-label={label}
+              aria-invalid={!!error}
+            >
+              <span className="truncate">
+                {options.find((option) => option.value === field.value)
+                  ?.label ?? `Select ${label.toLowerCase()}`}
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              {options.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
+      />
+    </Field>
   );
 }
 
