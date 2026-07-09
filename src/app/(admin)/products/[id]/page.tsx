@@ -10,6 +10,14 @@ import { StatusBadge } from "@/components/status-badge";
 import { Badge } from "@/components/ui/badge";
 import { DetailRow } from "@/components/detail-modal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { products } from "@/data/mock-data";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
 import { ProductDetailActions } from "./product-detail-actions";
@@ -91,6 +99,44 @@ export default async function ProductDetailPage({ params }: Props) {
               <p className="text-sm text-muted-foreground">
                 {product.description}
               </p>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {product.variants.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Variants</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-hidden rounded-lg border">
+                <Table>
+                  <TableHeader className="bg-muted/50">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead>Name</TableHead>
+                      <TableHead>SKU</TableHead>
+                      <TableHead className="text-right">Price</TableHead>
+                      <TableHead className="text-right">Stock</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {product.variants.map((variant) => (
+                      <TableRow key={variant.sku} className="hover:bg-transparent">
+                        <TableCell className="font-medium">{variant.name}</TableCell>
+                        <TableCell className="text-muted-foreground">
+                          {variant.sku}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatCurrency(variant.price)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatNumber(variant.stock)}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </CardContent>
           </Card>
         ) : null}

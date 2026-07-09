@@ -2,6 +2,14 @@
 
 export type ProductStatus = "active" | "draft" | "archived" | "out_of_stock";
 
+// a specific version of a product (e.g. "Red / Small") with its own price and stock
+export type ProductVariant = {
+  name: string;
+  sku: string;
+  price: number; // US dollars
+  stock: number;
+};
+
 export type Product = {
   id: string;
   name: string;
@@ -11,6 +19,7 @@ export type Product = {
   category: string;
   tags: string[];
   images: string[]; // image URLs
+  variants: ProductVariant[];
   price: number; // US dollars
   stock: number;
   status: ProductStatus;
