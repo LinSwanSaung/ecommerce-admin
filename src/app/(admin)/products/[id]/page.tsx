@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Boxes, DollarSign, Tag } from "lucide-react";
@@ -18,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ProductGallery } from "@/components/products/product-gallery";
 import { products } from "@/data/mock-data";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
 import { ProductDetailActions } from "./product-detail-actions";
@@ -55,26 +55,7 @@ export default async function ProductDetailPage({ params }: Props) {
       />
 
       <div className="space-y-6">
-        {product.images.length > 0 ? (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-            {product.images.map((src, index) => (
-              <div
-                key={src}
-                className="relative aspect-square overflow-hidden rounded-lg border bg-muted"
-              >
-                <Image
-                  src={src}
-                  alt={`${product.name} image ${index + 1}`}
-                  fill
-                  sizes="(max-width: 640px) 50vw, 33vw"
-                  // uploaded images are data URLs; skip the optimizer for those
-                  unoptimized={src.startsWith("data:")}
-                  className="object-cover"
-                />
-              </div>
-            ))}
-          </div>
-        ) : null}
+        <ProductGallery images={product.images} name={product.name} />
 
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard
