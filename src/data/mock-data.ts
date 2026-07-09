@@ -50,6 +50,8 @@ const PRODUCT_STATUS_POOL: ProductStatus[] = ["active","active","active","draft"
 const ORDER_STATUS_POOL: OrderStatus[] = ["pending","paid","processing","shipped","delivered","delivered","cancelled","refunded"]; // prettier-ignore
 const CUSTOMER_STATUS_POOL: CustomerStatus[] = ["active","active","active","inactive","blocked"]; // prettier-ignore
 
+const VARIANT_SIZES = ["Small", "Medium", "Large", "X-Large"];
+
 function makeProducts(count: number): Product[] {
   return Array.from({ length: count }, (_, i) => {
     const status = pick(PRODUCT_STATUS_POOL);
@@ -58,6 +60,17 @@ function makeProducts(count: number): Product[] {
     const noun = pick(NOUN);
     const brand = pick(BRANDS);
     const category = pick(CATEGORIES);
+    const price = money(8, 600);
+
+    // most products carry a couple of size variants, some carry none
+    const variantCount = pick([0, 0, 2, 3]);
+    const variants = sample(VARIANT_SIZES, variantCount).map((size, v) => ({
+      name: size,
+      sku: `SKU-${1000 + i}-${size[0]}`,
+      price: Math.round((price + v * 5) * 100) / 100,
+      stock: status === "out_of_stock" ? 0 : int(0, 80),
+    }));
+
     return {
       id,
       name: `${adj} ${noun}`,
@@ -71,7 +84,8 @@ function makeProducts(count: number): Product[] {
         { length: 3 },
         (_, n) => `https://picsum.photos/seed/${id}-${n}/600/600`,
       ),
-      price: money(8, 600),
+      variants,
+      price,
       stock: status === "out_of_stock" ? 0 : int(0, 240),
       status,
       createdAt: daysAgoISO(int(0, 300)),

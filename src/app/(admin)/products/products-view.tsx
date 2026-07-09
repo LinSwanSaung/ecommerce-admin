@@ -250,6 +250,9 @@ export function ProductsView({ data }: { data: ListResult<Product> }) {
                   </span>
                 </DetailRow>
               ) : null}
+              {detail.variants.length > 0 ? (
+                <DetailRow label="Variants">{detail.variants.length}</DetailRow>
+              ) : null}
               <DetailRow label="Created">{formatDate(detail.createdAt)}</DetailRow>
             </dl>
             <Button

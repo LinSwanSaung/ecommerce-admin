@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -41,6 +42,7 @@ const EMPTY: ProductFormValues = {
   category: "",
   tags: "",
   images: [],
+  variants: [],
   price: "",
   stock: "",
   status: "",
@@ -54,6 +56,12 @@ const toFormValues = (product: Product): ProductFormValues => ({
   category: product.category,
   tags: product.tags.join(", "),
   images: product.images,
+  variants: product.variants.map((variant) => ({
+    name: variant.name,
+    sku: variant.sku,
+    price: String(variant.price),
+    stock: String(variant.stock),
+  })),
   price: String(product.price),
   stock: String(product.stock),
   status: product.status,
@@ -82,6 +90,9 @@ export function ProductFormDialog({
     defaultValues: EMPTY,
   });
   const isSaving = isSubmitting;
+
+  // repeatable variant rows (size/SKU/price/stock)
+  const { fields, append, remove } = useFieldArray({ control, name: "variants" });
 
   // reset the fields whenever the dialog opens
   useEffect(() => {
@@ -280,6 +291,81 @@ export function ProductFormDialog({
               )}
             />
           </Field>
+
+          <div className="space-y-2">
+            <Label>Variants</Label>
+            {fields.length > 0 ? (
+              <div className="space-y-2">
+                {fields.map((field, index) => {
+                  const rowErrors = errors.variants?.[index];
+                  return (
+                    <div
+                      key={field.id}
+                      className="grid grid-cols-[1fr_1fr_auto] items-start gap-2 sm:grid-cols-[1.5fr_1.5fr_1fr_1fr_auto]"
+                    >
+                      <Input
+                        placeholder="Name (e.g. Large)"
+                        aria-label={`Variant ${index + 1} name`}
+                        aria-invalid={!!rowErrors?.name}
+                        {...register(`variants.${index}.name`)}
+                      />
+                      <Input
+                        placeholder="SKU"
+                        aria-label={`Variant ${index + 1} SKU`}
+                        aria-invalid={!!rowErrors?.sku}
+                        {...register(`variants.${index}.sku`)}
+                      />
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="Price"
+                        aria-label={`Variant ${index + 1} price`}
+                        aria-invalid={!!rowErrors?.price}
+                        {...register(`variants.${index}.price`)}
+                      />
+                      <Input
+                        type="number"
+                        step="1"
+                        min="0"
+                        placeholder="Stock"
+                        aria-label={`Variant ${index + 1} stock`}
+                        aria-invalid={!!rowErrors?.stock}
+                        {...register(`variants.${index}.stock`)}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={`Remove variant ${index + 1}`}
+                        onClick={() => remove(index)}
+                      >
+                        <Trash2 />
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                No variants. Add one if the product comes in multiple options.
+              </p>
+            )}
+            {errors.variants ? (
+              <p className="text-sm text-destructive">
+                Fill in every variant field.
+              </p>
+            ) : null}
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => append({ name: "", sku: "", price: "", stock: "" })}
+            >
+              <Plus />
+              Add variant
+            </Button>
+          </div>
 
           <DialogFooter>
             <Button

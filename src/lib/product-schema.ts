@@ -2,6 +2,22 @@ import { z } from "zod";
 
 // inputs hold strings, so the form schema and the typed input schema are separate
 
+const variantFormSchema = z.object({
+  name: z.string().trim().min(1, "Name is required"),
+  sku: z.string().trim().min(1, "SKU is required"),
+  price: z
+    .string()
+    .min(1, "Price is required")
+    .refine((v) => Number(v) > 0, "Price must be greater than 0"),
+  stock: z
+    .string()
+    .min(1, "Stock is required")
+    .refine(
+      (v) => Number.isInteger(Number(v)) && Number(v) >= 0,
+      "Stock must be a whole number",
+    ),
+});
+
 export const productFormSchema = z.object({
   name: z.string().trim().min(1, "Name is required"),
   description: z.string().trim(),
@@ -10,6 +26,7 @@ export const productFormSchema = z.object({
   category: z.string().min(1, "Category is required"),
   tags: z.string(), // comma separated in the form
   images: z.array(z.string()), // data URLs from the image picker
+  variants: z.array(variantFormSchema),
   price: z
     .string()
     .min(1, "Price is required")
@@ -24,6 +41,13 @@ export const productFormSchema = z.object({
 
 export type ProductFormValues = z.infer<typeof productFormSchema>;
 
+const variantInputSchema = z.object({
+  name: z.string().min(1),
+  sku: z.string().min(1),
+  price: z.number().gt(0),
+  stock: z.number().int().min(0),
+});
+
 export const productInputSchema = z.object({
   name: z.string().min(1),
   description: z.string(),
@@ -32,6 +56,7 @@ export const productInputSchema = z.object({
   category: z.string().min(1),
   tags: z.array(z.string()),
   images: z.array(z.string()),
+  variants: z.array(variantInputSchema),
   price: z.number().gt(0),
   stock: z.number().int().min(0),
   status: z.enum(["active", "draft", "archived", "out_of_stock"]),
@@ -54,6 +79,12 @@ export const formValuesToInput = (values: ProductFormValues): ProductInput => ({
   category: values.category,
   tags: splitList(values.tags, ","),
   images: values.images,
+  variants: values.variants.map((variant) => ({
+    name: variant.name.trim(),
+    sku: variant.sku.trim(),
+    price: Number(variant.price),
+    stock: Number(variant.stock),
+  })),
   price: Number(values.price),
   stock: Number(values.stock),
   status: values.status as ProductInput["status"],
