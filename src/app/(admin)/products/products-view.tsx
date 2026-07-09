@@ -154,10 +154,12 @@ export function ProductsView({ data }: { data: ListResult<Product> }) {
                 <Pencil />
                 Edit
               </DropdownMenuItem>
+              {/* keep the disabled state readable and show the not-allowed cursor */}
               <DropdownMenuItem
                 variant="destructive"
                 disabled={row.original.status === "archived"}
                 onClick={() => archive(row.original.id)}
+                className="data-disabled:pointer-events-auto data-disabled:cursor-not-allowed data-disabled:opacity-75"
               >
                 <Archive />
                 Archive
