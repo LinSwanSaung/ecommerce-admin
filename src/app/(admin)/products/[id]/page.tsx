@@ -59,6 +59,8 @@ export default async function ProductDetailPage({ params }: Props) {
                   alt={`${product.name} image ${index + 1}`}
                   fill
                   sizes="(max-width: 640px) 50vw, 33vw"
+                  // uploaded images are data URLs; skip the optimizer for those
+                  unoptimized={src.startsWith("data:")}
                   className="object-cover"
                 />
               </div>

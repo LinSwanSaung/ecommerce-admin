@@ -9,7 +9,7 @@ export const productFormSchema = z.object({
   brand: z.string().min(1, "Brand is required"),
   category: z.string().min(1, "Category is required"),
   tags: z.string(), // comma separated in the form
-  images: z.string(), // one URL per line in the form
+  images: z.array(z.string()), // data URLs from the image picker
   price: z
     .string()
     .min(1, "Price is required")
@@ -53,7 +53,7 @@ export const formValuesToInput = (values: ProductFormValues): ProductInput => ({
   brand: values.brand,
   category: values.category,
   tags: splitList(values.tags, ","),
-  images: splitList(values.images, /[\n,]/),
+  images: values.images,
   price: Number(values.price),
   stock: Number(values.stock),
   status: values.status as ProductInput["status"],

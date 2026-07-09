@@ -9,7 +9,7 @@ const valid = {
   brand: "Acme",
   category: "Home & Kitchen",
   tags: "new, sale",
-  images: "https://example.com/a.jpg\nhttps://example.com/b.jpg",
+  images: ["https://example.com/a.jpg", "https://example.com/b.jpg"],
   price: "12.5",
   stock: "3",
   status: "active",
