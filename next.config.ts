@@ -5,9 +5,9 @@ const nextConfig: NextConfig = {
   // creating new objects, so the compiler's auto-memoization never sees it
   // "change" and table UI (rows, column visibility) goes stale.
   reactCompiler: false,
-  // mock product images come from a placeholder service
+  // mock product images are hand-picked Wikimedia Commons photos
   images: {
-    remotePatterns: [{ protocol: "https", hostname: "picsum.photos" }],
+    remotePatterns: [{ protocol: "https", hostname: "upload.wikimedia.org" }],
   },
 };
 
