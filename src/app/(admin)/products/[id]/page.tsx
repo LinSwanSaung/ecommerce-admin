@@ -55,9 +55,12 @@ export default async function ProductDetailPage({ params }: Props) {
       />
 
       <div className="space-y-6">
-        {/* wide screens: gallery left, stats fill the space beside it */}
+        {/* wide screens: gallery left, stats fill the space beside it;
+            mid widths: the gallery centers instead of leaving a gap on its right */}
         <div className="grid gap-6 lg:grid-cols-[minmax(0,28rem)_minmax(0,1fr)] lg:items-start">
-          <ProductGallery images={product.images} name={product.name} />
+          <div className="mx-auto w-full max-w-md lg:mx-0">
+            <ProductGallery images={product.images} name={product.name} />
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
             <StatCard
