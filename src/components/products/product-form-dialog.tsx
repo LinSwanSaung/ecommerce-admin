@@ -30,6 +30,7 @@ import {
   type ProductFormValues,
 } from "@/lib/product-schema";
 import { createProduct, updateProduct } from "@/lib/product-actions";
+import { ImagePicker } from "./image-picker";
 import type { Product } from "@/types";
 
 const EMPTY: ProductFormValues = {
@@ -39,7 +40,7 @@ const EMPTY: ProductFormValues = {
   brand: "",
   category: "",
   tags: "",
-  images: "",
+  images: [],
   price: "",
   stock: "",
   status: "",
@@ -52,7 +53,7 @@ const toFormValues = (product: Product): ProductFormValues => ({
   brand: product.brand,
   category: product.category,
   tags: product.tags.join(", "),
-  images: product.images.join("\n"),
+  images: product.images,
   price: String(product.price),
   stock: String(product.stock),
   status: product.status,
@@ -270,17 +271,13 @@ export function ProductFormDialog({
             />
           </Field>
 
-          <Field
-            label="Images"
-            htmlFor="images"
-            error={errors.images?.message}
-          >
-            <Textarea
-              id="images"
-              rows={3}
-              placeholder="One image URL per line"
-              {...register("images")}
-              aria-invalid={!!errors.images}
+          <Field label="Images" error={errors.images?.message}>
+            <Controller
+              control={control}
+              name="images"
+              render={({ field }) => (
+                <ImagePicker value={field.value} onChange={field.onChange} />
+              )}
             />
           </Field>
 
