@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Boxes, DollarSign, Tag } from "lucide-react";
@@ -6,7 +7,8 @@ import { ArrowLeft, Boxes, DollarSign, Tag } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { StatCard } from "@/components/stat-card";
 import { StatusBadge } from "@/components/status-badge";
-import { DetailRow } from "@/components/detail-sheet";
+import { Badge } from "@/components/ui/badge";
+import { DetailRow } from "@/components/detail-modal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { products } from "@/data/mock-data";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
@@ -45,6 +47,25 @@ export default async function ProductDetailPage({ params }: Props) {
       />
 
       <div className="space-y-6">
+        {product.images.length > 0 ? (
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            {product.images.map((src, index) => (
+              <div
+                key={src}
+                className="relative aspect-square overflow-hidden rounded-lg border bg-muted"
+              >
+                <Image
+                  src={src}
+                  alt={`${product.name} image ${index + 1}`}
+                  fill
+                  sizes="(max-width: 640px) 50vw, 33vw"
+                  className="object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        ) : null}
+
         <div className="grid gap-4 sm:grid-cols-3">
           <StatCard
             label="Price"
@@ -59,6 +80,19 @@ export default async function ProductDetailPage({ params }: Props) {
           <StatCard label="Category" value={product.category} icon={Tag} />
         </div>
 
+        {product.description ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Description</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                {product.description}
+              </p>
+            </CardContent>
+          </Card>
+        ) : null}
+
         <Card>
           <CardHeader>
             <CardTitle>Details</CardTitle>
@@ -68,7 +102,21 @@ export default async function ProductDetailPage({ params }: Props) {
               <DetailRow label="Status">
                 <StatusBadge status={product.status} />
               </DetailRow>
+              <DetailRow label="Brand">{product.brand}</DetailRow>
               <DetailRow label="SKU">{product.sku}</DetailRow>
+              <DetailRow label="Tags">
+                {product.tags.length > 0 ? (
+                  <span className="flex flex-wrap justify-end gap-1">
+                    {product.tags.map((tag) => (
+                      <Badge key={tag} variant="secondary">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </span>
+                ) : (
+                  "—"
+                )}
+              </DetailRow>
               <DetailRow label="Product ID">{product.id}</DetailRow>
               <DetailRow label="Created">{formatDate(product.createdAt)}</DetailRow>
             </dl>

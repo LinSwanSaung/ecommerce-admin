@@ -7,6 +7,7 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -22,7 +23,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
-import { CATEGORIES, PRODUCT_STATUSES } from "@/lib/constants";
+import { BRANDS, CATEGORIES, PRODUCT_STATUSES } from "@/lib/constants";
 import {
   formValuesToInput,
   productFormSchema,
@@ -33,8 +34,12 @@ import type { Product } from "@/types";
 
 const EMPTY: ProductFormValues = {
   name: "",
+  description: "",
   sku: "",
+  brand: "",
   category: "",
+  tags: "",
+  images: "",
   price: "",
   stock: "",
   status: "",
@@ -42,8 +47,12 @@ const EMPTY: ProductFormValues = {
 
 const toFormValues = (product: Product): ProductFormValues => ({
   name: product.name,
+  description: product.description,
   sku: product.sku,
+  brand: product.brand,
   category: product.category,
+  tags: product.tags.join(", "),
+  images: product.images.join("\n"),
   price: String(product.price),
   stock: String(product.stock),
   status: product.status,
@@ -117,6 +126,19 @@ export function ProductFormDialog({
             />
           </Field>
 
+          <Field
+            label="Description"
+            htmlFor="description"
+            error={errors.description?.message}
+          >
+            <Textarea
+              id="description"
+              rows={3}
+              {...register("description")}
+              aria-invalid={!!errors.description}
+            />
+          </Field>
+
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="SKU" htmlFor="sku" error={errors.sku?.message}>
               <Input
@@ -126,6 +148,35 @@ export function ProductFormDialog({
               />
             </Field>
 
+            <Field label="Brand" error={errors.brand?.message}>
+              <Controller
+                control={control}
+                name="brand"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger
+                      className="w-full"
+                      aria-label="Brand"
+                      aria-invalid={!!errors.brand}
+                    >
+                      <span className="truncate">
+                        {field.value || "Select brand"}
+                      </span>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {BRANDS.map((brand) => (
+                        <SelectItem key={brand} value={brand}>
+                          {brand}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </Field>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Category" error={errors.category?.message}>
               <Controller
                 control={control}
@@ -150,6 +201,15 @@ export function ProductFormDialog({
                     </SelectContent>
                   </Select>
                 )}
+              />
+            </Field>
+
+            <Field label="Tags" htmlFor="tags" error={errors.tags?.message}>
+              <Input
+                id="tags"
+                placeholder="new, sale"
+                {...register("tags")}
+                aria-invalid={!!errors.tags}
               />
             </Field>
           </div>
@@ -207,6 +267,20 @@ export function ProductFormDialog({
                   </SelectContent>
                 </Select>
               )}
+            />
+          </Field>
+
+          <Field
+            label="Images"
+            htmlFor="images"
+            error={errors.images?.message}
+          >
+            <Textarea
+              id="images"
+              rows={3}
+              placeholder="One image URL per line"
+              {...register("images")}
+              aria-invalid={!!errors.images}
             />
           </Field>
 

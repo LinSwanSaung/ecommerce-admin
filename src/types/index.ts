@@ -5,8 +5,12 @@ export type ProductStatus = "active" | "draft" | "archived" | "out_of_stock";
 export type Product = {
   id: string;
   name: string;
+  description: string;
   sku: string;
+  brand: string;
   category: string;
+  tags: string[];
+  images: string[]; // image URLs
   price: number; // US dollars
   stock: number;
   status: ProductStatus;

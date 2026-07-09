@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Menu } from "lucide-react";
+import { Menu, PanelLeft } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -15,11 +15,28 @@ import { ThemeToggle } from "./theme-toggle";
 import { UserMenu } from "./user-menu";
 import type { SessionUser } from "@/lib/auth";
 
-export function Header({ user }: { user: SessionUser }) {
+export function Header({
+  user,
+  onToggleSidebar,
+}: {
+  user: SessionUser;
+  onToggleSidebar?: () => void;
+}) {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur md:px-6">
+      {/* Desktop: collapse/expand the sidebar. */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="hidden md:inline-flex"
+        aria-label="Toggle sidebar"
+        onClick={onToggleSidebar}
+      >
+        <PanelLeft className="h-5 w-5" />
+      </Button>
+
       {/* Mobile nav: the same Sidebar inside a slide-in Sheet. */}
       <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
         <SheetTrigger

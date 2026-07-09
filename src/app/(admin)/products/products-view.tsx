@@ -26,8 +26,9 @@ import { FilterSelect } from "@/components/tables/filter-select";
 import { ColumnToggle } from "@/components/tables/column-toggle";
 import { TablePagination } from "@/components/tables/table-pagination";
 import { StatusBadge } from "@/components/status-badge";
+import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/empty-state";
-import { DetailSheet, DetailRow } from "@/components/detail-sheet";
+import { DetailModal, DetailRow } from "@/components/detail-modal";
 import { ProductFormDialog } from "@/components/products/product-form-dialog";
 import { useDataTable } from "@/hooks/use-data-table";
 import { useQueryParams } from "@/hooks/use-query-params";
@@ -217,8 +218,8 @@ export function ProductsView({ data }: { data: ListResult<Product> }) {
         isLoading={isPending}
       />
 
-      {/* Detail drawer */}
-      <DetailSheet
+      {/* Detail modal */}
+      <DetailModal
         open={Boolean(detail)}
         onOpenChange={(open) => !open && setDetail(null)}
         title={detail?.name ?? ""}
@@ -227,12 +228,24 @@ export function ProductsView({ data }: { data: ListResult<Product> }) {
         {detail ? (
           <div className="space-y-4">
             <dl>
+              <DetailRow label="Brand">{detail.brand}</DetailRow>
               <DetailRow label="Category">{detail.category}</DetailRow>
               <DetailRow label="Price">{formatCurrency(detail.price)}</DetailRow>
               <DetailRow label="Stock">{detail.stock}</DetailRow>
               <DetailRow label="Status">
                 <StatusBadge status={detail.status} />
               </DetailRow>
+              {detail.tags.length > 0 ? (
+                <DetailRow label="Tags">
+                  <span className="flex flex-wrap justify-end gap-1">
+                    {detail.tags.map((tag) => (
+                      <Badge key={tag} variant="secondary">
+                        {tag}
+                      </Badge>
+                    ))}
+                  </span>
+                </DetailRow>
+              ) : null}
               <DetailRow label="Created">{formatDate(detail.createdAt)}</DetailRow>
             </dl>
             <Button
@@ -249,7 +262,7 @@ export function ProductsView({ data }: { data: ListResult<Product> }) {
             </Button>
           </div>
         ) : null}
-      </DetailSheet>
+      </DetailModal>
 
       {/* Add / edit form */}
       <ProductFormDialog

@@ -7,7 +7,7 @@ import type {
   OrderStatus,
   CustomerStatus,
 } from "@/types";
-import { CATEGORIES } from "@/lib/constants";
+import { BRANDS, CATEGORIES } from "@/lib/constants";
 
 // in-memory data, resets on every server restart
 
@@ -24,6 +24,15 @@ function mulberry32(seed: number) {
 
 const rng = mulberry32(20240607);
 const pick = <T>(arr: readonly T[]): T => arr[Math.floor(rng() * arr.length)];
+// n distinct items, order randomised (used for tags)
+const sample = <T>(arr: readonly T[], n: number): T[] => {
+  const copy = [...arr];
+  const out: T[] = [];
+  for (let k = 0; k < n && copy.length; k++) {
+    out.push(copy.splice(Math.floor(rng() * copy.length), 1)[0]);
+  }
+  return out;
+};
 const int = (min: number, max: number) => Math.floor(rng() * (max - min + 1)) + min;
 const money = (min: number, max: number) =>
   Math.round((rng() * (max - min) + min) * 100) / 100;
@@ -34,6 +43,7 @@ const FIRST = ["Alice","Brian","Carla","David","Emma","Frank","Grace","Henry","I
 const LAST = ["Anderson","Brooks","Chen","Diaz","Evans","Foster","Garcia","Hughes","Ito","Johnson","Khan","Lopez","Miller","Nguyen","Owens","Patel","Reed","Singh","Torres","Walker"]; // prettier-ignore
 const ADJ = ["Pro","Max","Lite","Ultra","Eco","Smart","Classic","Premium","Mini","Plus"]; // prettier-ignore
 const NOUN = ["Headphones","Sneakers","Backpack","Blender","Lamp","Keyboard","Bottle","Jacket","Watch","Speaker","Charger","Notebook","Mug","Camera","Chair"]; // prettier-ignore
+const TAG_POOL = ["new","bestseller","sale","limited","eco","featured","clearance","popular"]; // prettier-ignore
 
 // Weighted pools (repeats bias the distribution toward common statuses).
 const PRODUCT_STATUS_POOL: ProductStatus[] = ["active","active","active","draft","archived","out_of_stock"]; // prettier-ignore
@@ -43,11 +53,24 @@ const CUSTOMER_STATUS_POOL: CustomerStatus[] = ["active","active","active","inac
 function makeProducts(count: number): Product[] {
   return Array.from({ length: count }, (_, i) => {
     const status = pick(PRODUCT_STATUS_POOL);
+    const id = `PROD-${1000 + i}`;
+    const adj = pick(ADJ);
+    const noun = pick(NOUN);
+    const brand = pick(BRANDS);
+    const category = pick(CATEGORIES);
     return {
-      id: `PROD-${1000 + i}`,
-      name: `${pick(ADJ)} ${pick(NOUN)}`,
+      id,
+      name: `${adj} ${noun}`,
+      description: `The ${brand} ${adj} ${noun} is a ${category.toLowerCase()} essential, built for everyday use and backed by a one-year warranty.`,
       sku: `SKU-${1000 + i}`,
-      category: pick(CATEGORIES),
+      brand,
+      category,
+      tags: sample(TAG_POOL, int(1, 3)),
+      // deterministic placeholder images, seeded by product id
+      images: Array.from(
+        { length: 3 },
+        (_, n) => `https://picsum.photos/seed/${id}-${n}/600/600`,
+      ),
       price: money(8, 600),
       stock: status === "out_of_stock" ? 0 : int(0, 240),
       status,

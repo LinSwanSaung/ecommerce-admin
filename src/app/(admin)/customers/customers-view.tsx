@@ -12,7 +12,7 @@ import { ColumnToggle } from "@/components/tables/column-toggle";
 import { TablePagination } from "@/components/tables/table-pagination";
 import { StatusBadge } from "@/components/status-badge";
 import { EmptyState } from "@/components/empty-state";
-import { DetailSheet, DetailRow } from "@/components/detail-sheet";
+import { DetailModal, DetailRow } from "@/components/detail-modal";
 import { useDataTable } from "@/hooks/use-data-table";
 import { useQueryParams } from "@/hooks/use-query-params";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
@@ -112,7 +112,7 @@ export function CustomersView({ data }: { data: ListResult<Customer> }) {
         isLoading={isPending}
       />
 
-      <DetailSheet
+      <DetailModal
         open={Boolean(detail)}
         onOpenChange={(open) => !open && setDetail(null)}
         title={detail?.name ?? ""}
@@ -163,7 +163,7 @@ export function CustomersView({ data }: { data: ListResult<Customer> }) {
             </div>
           </div>
         ) : null}
-      </DetailSheet>
+      </DetailModal>
     </div>
   );
 }
