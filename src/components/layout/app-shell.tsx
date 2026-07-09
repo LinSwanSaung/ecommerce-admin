@@ -19,14 +19,16 @@ export function AppShell({
 
   return (
     <div className="flex min-h-screen">
+      {/* the aside itself is sticky — overflow-hidden on an ancestor would kill
+          position:sticky, so the clipping and the sticking live on the same box */}
       <aside
         className={cn(
-          "hidden shrink-0 overflow-hidden border-r bg-sidebar transition-[width] duration-200 md:block",
+          "sticky top-0 hidden h-screen shrink-0 overflow-hidden border-r bg-sidebar transition-[width] duration-200 md:block",
           sidebarOpen ? "w-64" : "w-0 border-r-0",
         )}
       >
         {/* fixed inner width so the content doesn't reflow while the aside animates */}
-        <div className="sticky top-0 h-screen w-64 overflow-y-auto">
+        <div className="h-full w-64 overflow-y-auto">
           <Sidebar />
         </div>
       </aside>
