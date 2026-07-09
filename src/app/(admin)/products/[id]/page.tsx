@@ -21,6 +21,7 @@ import { ProductGallery } from "@/components/products/product-gallery";
 import { products } from "@/data/mock-data";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
 import { ProductDetailActions } from "./product-detail-actions";
+import type { Product } from "@/types";
 
 // params is a Promise in Next 16, same as searchParams
 type Props = { params: Promise<{ id: string }> };
@@ -55,27 +56,24 @@ export default async function ProductDetailPage({ params }: Props) {
       />
 
       <div className="space-y-6">
-        {/* wide screens: gallery left, stats fill the space beside it;
-            mid widths: the gallery centers instead of leaving a gap on its right */}
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,28rem)_minmax(0,1fr)] lg:items-start">
-          <div className="mx-auto w-full max-w-md lg:mx-0">
-            <ProductGallery images={product.images} name={product.name} />
-          </div>
+        {/* wide screens: gallery left, stats fill the space beside it; mid
+            widths: the gallery centers. Without images the stats take the
+            full width instead of sitting next to an empty column. */}
+        {product.images.length > 0 ? (
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,28rem)_minmax(0,1fr)] lg:items-start">
+            <div className="mx-auto w-full max-w-md lg:mx-0">
+              <ProductGallery images={product.images} name={product.name} />
+            </div>
 
-          <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
-            <StatCard
-              label="Price"
-              value={formatCurrency(product.price)}
-              icon={DollarSign}
-            />
-            <StatCard
-              label="In stock"
-              value={formatNumber(product.stock)}
-              icon={Boxes}
-            />
-            <StatCard label="Category" value={product.category} icon={Tag} />
+            <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+              <ProductStats product={product} />
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-3">
+            <ProductStats product={product} />
+          </div>
+        )}
 
         {product.description ? (
           <Card>
@@ -159,5 +157,23 @@ export default async function ProductDetailPage({ params }: Props) {
         </Card>
       </div>
     </div>
+  );
+}
+
+function ProductStats({ product }: { product: Product }) {
+  return (
+    <>
+      <StatCard
+        label="Price"
+        value={formatCurrency(product.price)}
+        icon={DollarSign}
+      />
+      <StatCard
+        label="In stock"
+        value={formatNumber(product.stock)}
+        icon={Boxes}
+      />
+      <StatCard label="Category" value={product.category} icon={Tag} />
+    </>
   );
 }
