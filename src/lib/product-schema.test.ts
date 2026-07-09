@@ -4,8 +4,12 @@ import { formValuesToInput, productFormSchema } from "./product-schema";
 
 const valid = {
   name: "Mug",
+  description: "A sturdy ceramic mug",
   sku: "SKU-1",
+  brand: "Acme",
   category: "Home & Kitchen",
+  tags: "new, sale",
+  images: "https://example.com/a.jpg\nhttps://example.com/b.jpg",
   price: "12.5",
   stock: "3",
   status: "active",
@@ -35,8 +39,12 @@ describe("formValuesToInput", () => {
   it("converts form strings into the typed API payload", () => {
     expect(formValuesToInput(valid)).toEqual({
       name: "Mug",
+      description: "A sturdy ceramic mug",
       sku: "SKU-1",
+      brand: "Acme",
       category: "Home & Kitchen",
+      tags: ["new", "sale"],
+      images: ["https://example.com/a.jpg", "https://example.com/b.jpg"],
       price: 12.5,
       stock: 3,
       status: "active",

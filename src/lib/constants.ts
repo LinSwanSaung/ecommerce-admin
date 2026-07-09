@@ -13,6 +13,17 @@ export const CATEGORIES = [
   "Grocery",
 ] as const;
 
+export const BRANDS = [
+  "Acme",
+  "Northwind",
+  "Globex",
+  "Umbra",
+  "Sunbeam",
+  "Vertex",
+  "Lumen",
+  "Cobalt",
+] as const;
+
 export const PRODUCT_STATUSES: Option<ProductStatus>[] = [
   { value: "active", label: "Active" },
   { value: "draft", label: "Draft" },

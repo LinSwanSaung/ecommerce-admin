@@ -12,7 +12,7 @@ import { ColumnToggle } from "@/components/tables/column-toggle";
 import { TablePagination } from "@/components/tables/table-pagination";
 import { StatusBadge } from "@/components/status-badge";
 import { EmptyState } from "@/components/empty-state";
-import { DetailSheet, DetailRow } from "@/components/detail-sheet";
+import { DetailModal, DetailRow } from "@/components/detail-modal";
 import { useDataTable } from "@/hooks/use-data-table";
 import { useQueryParams } from "@/hooks/use-query-params";
 import { formatCurrency, formatDate } from "@/lib/format";
@@ -103,7 +103,7 @@ export function OrdersView({ data }: { data: ListResult<Order> }) {
         isLoading={isPending}
       />
 
-      <DetailSheet
+      <DetailModal
         open={Boolean(detail)}
         onOpenChange={(open) => !open && setDetail(null)}
         title={detail?.id ?? ""}
@@ -141,7 +141,7 @@ export function OrdersView({ data }: { data: ListResult<Order> }) {
             </div>
           </div>
         ) : null}
-      </DetailSheet>
+      </DetailModal>
     </div>
   );
 }
