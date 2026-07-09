@@ -299,18 +299,22 @@ export function ProductFormDialog({
                     {fields.map((field, index) => {
                       const rowErrors = errors.variants?.[index];
                       return (
+                        // mobile: 2x2 fields with the remove button in the corner;
+                        // sm+: one row with everything inline
                         <div
                           key={field.id}
-                          className="grid grid-cols-[1fr_1fr_auto] items-start gap-2 sm:grid-cols-[1.5fr_1.5fr_1fr_1fr_auto]"
+                          className="relative grid grid-cols-2 items-start gap-2 pr-9 sm:grid-cols-[1.5fr_1.5fr_1fr_1fr_auto] sm:pr-0"
                         >
                           <Input
-                            placeholder="Name (e.g. Large)"
+                            placeholder="Name"
+                            className="text-sm"
                             aria-label={`Variant ${index + 1} name`}
                             aria-invalid={!!rowErrors?.name}
                             {...register(`variants.${index}.name`)}
                           />
                           <Input
                             placeholder="SKU"
+                            className="text-sm"
                             aria-label={`Variant ${index + 1} SKU`}
                             aria-invalid={!!rowErrors?.sku}
                             {...register(`variants.${index}.sku`)}
@@ -320,6 +324,7 @@ export function ProductFormDialog({
                             step="0.01"
                             min="0"
                             placeholder="Price"
+                            className="text-sm"
                             aria-label={`Variant ${index + 1} price`}
                             aria-invalid={!!rowErrors?.price}
                             {...register(`variants.${index}.price`)}
@@ -329,6 +334,7 @@ export function ProductFormDialog({
                             step="1"
                             min="0"
                             placeholder="Stock"
+                            className="text-sm"
                             aria-label={`Variant ${index + 1} stock`}
                             aria-invalid={!!rowErrors?.stock}
                             {...register(`variants.${index}.stock`)}
@@ -337,6 +343,7 @@ export function ProductFormDialog({
                             type="button"
                             variant="ghost"
                             size="icon-sm"
+                            className="absolute top-0.5 right-0 sm:static"
                             aria-label={`Remove variant ${index + 1}`}
                             onClick={() => remove(index)}
                           >
