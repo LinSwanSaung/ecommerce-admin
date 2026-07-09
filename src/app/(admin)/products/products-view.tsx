@@ -2,6 +2,7 @@
 
 import { useOptimistic, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   Archive,
@@ -40,6 +41,7 @@ import type { ListResult, Product } from "@/types";
 const categoryOptions = CATEGORIES.map((c) => ({ value: c, label: c }));
 
 export function ProductsView({ data }: { data: ListResult<Product> }) {
+  const router = useRouter();
   const { isPending } = useQueryParams();
   const [, startTransition] = useTransition();
 
@@ -141,10 +143,12 @@ export function ProductsView({ data }: { data: ListResult<Product> }) {
               <MoreHorizontal />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              {/* row click opens this too, but the menu is the keyboard path */}
-              <DropdownMenuItem onClick={() => setDetail(row.original)}>
+              {/* full detail page; the row click still opens the quick-view modal */}
+              <DropdownMenuItem
+                onClick={() => router.push(`/products/${row.original.id}`)}
+              >
                 <Eye />
-                View details
+                View more details
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => openEdit(row.original)}>
                 <Pencil />
