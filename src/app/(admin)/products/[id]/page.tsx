@@ -55,20 +55,23 @@ export default async function ProductDetailPage({ params }: Props) {
       />
 
       <div className="space-y-6">
-        <ProductGallery images={product.images} name={product.name} />
+        {/* wide screens: gallery left, stats fill the space beside it */}
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,28rem)_minmax(0,1fr)] lg:items-start">
+          <ProductGallery images={product.images} name={product.name} />
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          <StatCard
-            label="Price"
-            value={formatCurrency(product.price)}
-            icon={DollarSign}
-          />
-          <StatCard
-            label="In stock"
-            value={formatNumber(product.stock)}
-            icon={Boxes}
-          />
-          <StatCard label="Category" value={product.category} icon={Tag} />
+          <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
+            <StatCard
+              label="Price"
+              value={formatCurrency(product.price)}
+              icon={DollarSign}
+            />
+            <StatCard
+              label="In stock"
+              value={formatNumber(product.stock)}
+              icon={Boxes}
+            />
+            <StatCard label="Category" value={product.category} icon={Tag} />
+          </div>
         </div>
 
         {product.description ? (
