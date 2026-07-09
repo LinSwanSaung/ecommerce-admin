@@ -142,7 +142,7 @@ export function ProductsView({ data }: { data: ListResult<Product> }) {
             >
               <MoreHorizontal />
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="min-w-44">
               {/* full detail page; the row click still opens the quick-view modal */}
               <DropdownMenuItem
                 onClick={() => router.push(`/products/${row.original.id}`)}
