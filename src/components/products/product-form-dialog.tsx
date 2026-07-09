@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2 } from "lucide-react";
@@ -24,6 +24,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { BRANDS, CATEGORIES, PRODUCT_STATUSES } from "@/lib/constants";
 import {
   formValuesToInput,
@@ -92,30 +93,62 @@ export function ProductFormDialog({
   const isSaving = isSubmitting;
 
   // repeatable variant rows (size/SKU/price/stock)
-  const { fields, append, remove } = useFieldArray({ control, name: "variants" });
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "variants",
+  });
+
+  const [tab, setTab] = useState("details");
+  // reset to the first tab each time the dialog opens (adjust-state-on-prop-change)
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (prevOpen !== open) {
+    setPrevOpen(open);
+    if (open) setTab("details");
+  }
 
   // reset the fields whenever the dialog opens
   useEffect(() => {
     if (open) reset(product ? toFormValues(product) : EMPTY);
   }, [open, product, reset]);
 
-  const onSubmit = handleSubmit(async (values) => {
-    const input = formValuesToInput(values);
-    try {
-      const result = product
-        ? await updateProduct(product.id, input)
-        : await createProduct(input);
+  const onSubmit = handleSubmit(
+    async (values) => {
+      const input = formValuesToInput(values);
+      try {
+        const result = product
+          ? await updateProduct(product.id, input)
+          : await createProduct(input);
 
-      if ("error" in result) {
-        toast.error(result.error); // keep the dialog open for another attempt
-        return;
+        if ("error" in result) {
+          toast.error(result.error); // keep the dialog open for another attempt
+          return;
+        }
+        toast.success(product ? "Product updated" : "Product created");
+        onOpenChange(false);
+      } catch {
+        toast.error("Something went wrong. Please try again.");
       }
-      toast.success(product ? "Product updated" : "Product created");
-      onOpenChange(false);
-    } catch {
-      toast.error("Something went wrong. Please try again.");
-    }
-  });
+    },
+    // a hidden tab could hold the invalid field, so surface it (details first)
+    (formErrors) => {
+      const detailsInvalid = (
+        [
+          "name",
+          "description",
+          "sku",
+          "brand",
+          "category",
+          "tags",
+          "price",
+          "stock",
+          "status",
+        ] as const
+      ).some((key) => formErrors[key]);
+      if (detailsInvalid) setTab("details");
+      else if (formErrors.images) setTab("images");
+      else if (formErrors.variants) setTab("variants");
+    },
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -130,242 +163,281 @@ export function ProductFormDialog({
         </DialogHeader>
 
         <form onSubmit={onSubmit} className="space-y-4" noValidate>
-          <Field label="Name" htmlFor="name" error={errors.name?.message}>
-            <Input
-              id="name"
-              {...register("name")}
-              aria-invalid={!!errors.name}
-            />
-          </Field>
+          <Tabs value={tab} onValueChange={setTab} className="w-full flex-col">
+            <TabsList className="w-full">
+              <TabsTrigger value="details">Details</TabsTrigger>
+              <TabsTrigger value="images">Images</TabsTrigger>
+              <TabsTrigger value="variants">
+                Variants{fields.length > 0 ? ` (${fields.length})` : ""}
+              </TabsTrigger>
+            </TabsList>
 
-          <Field
-            label="Description"
-            htmlFor="description"
-            error={errors.description?.message}
-          >
-            <Textarea
-              id="description"
-              rows={3}
-              {...register("description")}
-              aria-invalid={!!errors.description}
-            />
-          </Field>
+            <div className="max-h-[55vh] overflow-y-auto px-0.5 pt-1">
+              <TabsContent value="details" keepMounted className="space-y-4">
+                <Field label="Name" htmlFor="name" error={errors.name?.message}>
+                  <Input
+                    id="name"
+                    {...register("name")}
+                    aria-invalid={!!errors.name}
+                  />
+                </Field>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="SKU" htmlFor="sku" error={errors.sku?.message}>
-              <Input
-                id="sku"
-                {...register("sku")}
-                aria-invalid={!!errors.sku}
-              />
-            </Field>
+                <Field
+                  label="Description"
+                  htmlFor="description"
+                  error={errors.description?.message}
+                >
+                  <Textarea
+                    id="description"
+                    rows={3}
+                    {...register("description")}
+                    aria-invalid={!!errors.description}
+                  />
+                </Field>
 
-            <Field label="Brand" error={errors.brand?.message}>
-              <Controller
-                control={control}
-                name="brand"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger
-                      className="w-full"
-                      aria-label="Brand"
-                      aria-invalid={!!errors.brand}
-                    >
-                      <span className="truncate">
-                        {field.value || "Select brand"}
-                      </span>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {BRANDS.map((brand) => (
-                        <SelectItem key={brand} value={brand}>
-                          {brand}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </Field>
-          </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="SKU" htmlFor="sku" error={errors.sku?.message}>
+                    <Input
+                      id="sku"
+                      {...register("sku")}
+                      aria-invalid={!!errors.sku}
+                    />
+                  </Field>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Category" error={errors.category?.message}>
-              <Controller
-                control={control}
-                name="category"
-                render={({ field }) => (
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <SelectTrigger
-                      className="w-full"
-                      aria-label="Category"
-                      aria-invalid={!!errors.category}
-                    >
-                      <span className="truncate">
-                        {field.value || "Select category"}
-                      </span>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {CATEGORIES.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                )}
-              />
-            </Field>
+                  <Field label="Brand" error={errors.brand?.message}>
+                    <Controller
+                      control={control}
+                      name="brand"
+                      render={({ field }) => (
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger
+                            className="w-full"
+                            aria-label="Brand"
+                            aria-invalid={!!errors.brand}
+                          >
+                            <span className="truncate">
+                              {field.value || "Select brand"}
+                            </span>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {BRANDS.map((brand) => (
+                              <SelectItem key={brand} value={brand}>
+                                {brand}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </Field>
+                </div>
 
-            <Field label="Tags" htmlFor="tags" error={errors.tags?.message}>
-              <Input
-                id="tags"
-                placeholder="new, sale"
-                {...register("tags")}
-                aria-invalid={!!errors.tags}
-              />
-            </Field>
-          </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Category" error={errors.category?.message}>
+                    <Controller
+                      control={control}
+                      name="category"
+                      render={({ field }) => (
+                        <Select
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <SelectTrigger
+                            className="w-full"
+                            aria-label="Category"
+                            aria-invalid={!!errors.category}
+                          >
+                            <span className="truncate">
+                              {field.value || "Select category"}
+                            </span>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {CATEGORIES.map((category) => (
+                              <SelectItem key={category} value={category}>
+                                {category}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </Field>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field
-              label="Price ($)"
-              htmlFor="price"
-              error={errors.price?.message}
-            >
-              <Input
-                id="price"
-                type="number"
-                step="0.01"
-                min="0"
-                {...register("price")}
-                aria-invalid={!!errors.price}
-              />
-            </Field>
-
-            <Field label="Stock" htmlFor="stock" error={errors.stock?.message}>
-              <Input
-                id="stock"
-                type="number"
-                step="1"
-                min="0"
-                {...register("stock")}
-                aria-invalid={!!errors.stock}
-              />
-            </Field>
-          </div>
-
-          <Field label="Status" error={errors.status?.message}>
-            <Controller
-              control={control}
-              name="status"
-              render={({ field }) => (
-                <Select value={field.value} onValueChange={field.onChange}>
-                  <SelectTrigger
-                    className="w-full"
-                    aria-label="Status"
-                    aria-invalid={!!errors.status}
+                  <Field
+                    label="Tags"
+                    htmlFor="tags"
+                    error={errors.tags?.message}
                   >
-                    <span className="truncate">
-                      {PRODUCT_STATUSES.find((s) => s.value === field.value)
-                        ?.label ?? "Select status"}
-                    </span>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PRODUCT_STATUSES.map((status) => (
-                      <SelectItem key={status.value} value={status.value}>
-                        {status.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
-            />
-          </Field>
+                    <Input
+                      id="tags"
+                      placeholder="new, sale"
+                      {...register("tags")}
+                      aria-invalid={!!errors.tags}
+                    />
+                  </Field>
+                </div>
 
-          <Field label="Images" error={errors.images?.message}>
-            <Controller
-              control={control}
-              name="images"
-              render={({ field }) => (
-                <ImagePicker value={field.value} onChange={field.onChange} />
-              )}
-            />
-          </Field>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field
+                    label="Price ($)"
+                    htmlFor="price"
+                    error={errors.price?.message}
+                  >
+                    <Input
+                      id="price"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      {...register("price")}
+                      aria-invalid={!!errors.price}
+                    />
+                  </Field>
 
-          <div className="space-y-2">
-            <Label>Variants</Label>
-            {fields.length > 0 ? (
-              <div className="space-y-2">
-                {fields.map((field, index) => {
-                  const rowErrors = errors.variants?.[index];
-                  return (
-                    <div
-                      key={field.id}
-                      className="grid grid-cols-[1fr_1fr_auto] items-start gap-2 sm:grid-cols-[1.5fr_1.5fr_1fr_1fr_auto]"
-                    >
-                      <Input
-                        placeholder="Name (e.g. Large)"
-                        aria-label={`Variant ${index + 1} name`}
-                        aria-invalid={!!rowErrors?.name}
-                        {...register(`variants.${index}.name`)}
-                      />
-                      <Input
-                        placeholder="SKU"
-                        aria-label={`Variant ${index + 1} SKU`}
-                        aria-invalid={!!rowErrors?.sku}
-                        {...register(`variants.${index}.sku`)}
-                      />
-                      <Input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="Price"
-                        aria-label={`Variant ${index + 1} price`}
-                        aria-invalid={!!rowErrors?.price}
-                        {...register(`variants.${index}.price`)}
-                      />
-                      <Input
-                        type="number"
-                        step="1"
-                        min="0"
-                        placeholder="Stock"
-                        aria-label={`Variant ${index + 1} stock`}
-                        aria-invalid={!!rowErrors?.stock}
-                        {...register(`variants.${index}.stock`)}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        aria-label={`Remove variant ${index + 1}`}
-                        onClick={() => remove(index)}
+                  <Field
+                    label="Stock"
+                    htmlFor="stock"
+                    error={errors.stock?.message}
+                  >
+                    <Input
+                      id="stock"
+                      type="number"
+                      step="1"
+                      min="0"
+                      {...register("stock")}
+                      aria-invalid={!!errors.stock}
+                    />
+                  </Field>
+                </div>
+
+                <Field label="Status" error={errors.status?.message}>
+                  <Controller
+                    control={control}
+                    name="status"
+                    render={({ field }) => (
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
                       >
-                        <Trash2 />
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                No variants. Add one if the product comes in multiple options.
-              </p>
-            )}
-            {errors.variants ? (
-              <p className="text-sm text-destructive">
-                Fill in every variant field.
-              </p>
-            ) : null}
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => append({ name: "", sku: "", price: "", stock: "" })}
-            >
-              <Plus />
-              Add variant
-            </Button>
-          </div>
+                        <SelectTrigger
+                          className="w-full"
+                          aria-label="Status"
+                          aria-invalid={!!errors.status}
+                        >
+                          <span className="truncate">
+                            {PRODUCT_STATUSES.find(
+                              (s) => s.value === field.value,
+                            )?.label ?? "Select status"}
+                          </span>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PRODUCT_STATUSES.map((status) => (
+                            <SelectItem key={status.value} value={status.value}>
+                              {status.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </Field>
+              </TabsContent>
+
+              <TabsContent value="images" keepMounted className="space-y-4">
+                <Field label="Images" error={errors.images?.message}>
+                  <Controller
+                    control={control}
+                    name="images"
+                    render={({ field }) => (
+                      <ImagePicker
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
+                    )}
+                  />
+                </Field>
+              </TabsContent>
+
+              <TabsContent value="variants" keepMounted className="space-y-2">
+                {fields.length > 0 ? (
+                  <div className="space-y-2">
+                    {fields.map((field, index) => {
+                      const rowErrors = errors.variants?.[index];
+                      return (
+                        <div
+                          key={field.id}
+                          className="grid grid-cols-[1fr_1fr_auto] items-start gap-2 sm:grid-cols-[1.5fr_1.5fr_1fr_1fr_auto]"
+                        >
+                          <Input
+                            placeholder="Name (e.g. Large)"
+                            aria-label={`Variant ${index + 1} name`}
+                            aria-invalid={!!rowErrors?.name}
+                            {...register(`variants.${index}.name`)}
+                          />
+                          <Input
+                            placeholder="SKU"
+                            aria-label={`Variant ${index + 1} SKU`}
+                            aria-invalid={!!rowErrors?.sku}
+                            {...register(`variants.${index}.sku`)}
+                          />
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="Price"
+                            aria-label={`Variant ${index + 1} price`}
+                            aria-invalid={!!rowErrors?.price}
+                            {...register(`variants.${index}.price`)}
+                          />
+                          <Input
+                            type="number"
+                            step="1"
+                            min="0"
+                            placeholder="Stock"
+                            aria-label={`Variant ${index + 1} stock`}
+                            aria-invalid={!!rowErrors?.stock}
+                            {...register(`variants.${index}.stock`)}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon-sm"
+                            aria-label={`Remove variant ${index + 1}`}
+                            onClick={() => remove(index)}
+                          >
+                            <Trash2 />
+                          </Button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    No variants. Add one if the product comes in multiple
+                    options.
+                  </p>
+                )}
+                {errors.variants ? (
+                  <p className="text-sm text-destructive">
+                    Fill in every variant field.
+                  </p>
+                ) : null}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    append({ name: "", sku: "", price: "", stock: "" })
+                  }
+                >
+                  <Plus />
+                  Add variant
+                </Button>
+              </TabsContent>
+            </div>
+          </Tabs>
 
           <DialogFooter>
             <Button
